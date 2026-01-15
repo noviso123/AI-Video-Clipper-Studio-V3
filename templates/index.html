@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Video Clipper V3 (Professional)</title>
+        <!-- Tailwind CSS (via CDN for speed/simplicity as requested) -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet">
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #0f172a;
+                color: #f8fafc;
+            }
+
+            .glass-panel {
+                background: rgba(30, 41, 59, 0.7);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .gradient-text {
+                background: linear-gradient(to right, #60a5fa, #a855f7);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            /* CustomScrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #0f172a;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 4px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #475569;
+            }
+
+            .step-active {
+                border-color: #3b82f6;
+                color: #60a5fa;
+            }
+
+            .step-inactive {
+                border-color: #334155;
+                color: #64748b;
+            }
+
+            /* Viral Score Badge Colors */
+            .score-high {
+                background-color: #059669;
+                color: #d1fae5;
+            }
+
+            .score-med {
+                background-color: #d97706;
+                color: #fef3c7;
+            }
+
+            .score-low {
+                background-color: #b91c1c;
+                color: #fee2e2;
+            }
+        </style>
+    </head>
+
+    <body class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="border-b border-slate-700 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎬</span>
+                    <span class="text-xl font-bold tracking-tight">AI Video Clipper <span class="gradient-text">Studio
+                            V3</span></span>
+                </div>
+                <div class="flex items-center gap-4 text-sm text-slate-400">
+                    <span id="connection-status" class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-500"></span> Offline
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+            <!-- Hero / Input Section -->
+            <section id="input-section" class="mb-12 transition-all duration-500">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-4">Transforme vídeos longos em <span
+                            class="gradient-text">Virais</span></h1>
+                    <p class="text-slate-400 text-lg max-w-2xl mx-auto">
+                        A IA analisa, corta, legenda e edita automaticamente. Qualidade de estúdio em um clique.
+                    </p>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-2 max-w-3xl mx-auto shadow-2xl">
+                    <div class="flex flex-col md:flex-row gap-2">
+                        <!-- Tabs -->
+                        <div class="flex bg-slate-800 rounded-xl p-1 shrink-0">
+                            <button onclick="setMode('url')" id="tab-url"
+                                class="px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all">YouTube</button>
+                            <button onclick="setMode('file')" id="tab-file"
+                                class="px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all">Arquivo</button>
+                        </div>
+
+                        <!-- Input -->
+                        <div class="flex-grow relative">
+                            <input type="text" id="input-val"
+                                class="w-full h-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 text-white placeholder-slate-500 transition-all"
+                                placeholder="Cole a URL do YouTube aqui...">
+
+                            <button id="browse-btn" onclick="browseFile()"
+                                class="hidden absolute right-2 top-2 bottom-2 bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-sm">
+                                📂 Procurar
+                            </button>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button id="run-btn" onclick="runClipper()"
+                            class="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold shadow-lg transform hover:-translate-y-0.5 transition-all shrink-0">
+                            Gerar Clips ✨
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Section (Shows last processing) -->
+            <section id="history-section" class="hidden mb-8 max-w-3xl mx-auto">
+                <div class="glass-panel rounded-xl p-4 border-l-4 border-yellow-500">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">📁</span>
+                            <div>
+                                <p class="text-sm text-slate-400">Último Processamento</p>
+                                <p id="history-file" class="font-semibold text-white truncate max-w-xs">
+                                    videoplayback.mp4</p>
+                                <p id="history-status" class="text-xs text-yellow-400">⚠️ Interrompido no Stage 2.5</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="continueProcessing()"
+                                class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-bold transition-all">
+                                ▶️ Continuar
+                            </button>
+                            <button onclick="reprocessFromScratch()"
+                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-all">
+                                🔄 Recomeçar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Section (Hidden by default) -->
+
+            <section id="progress-section" class="hidden mb-12 max-w-3xl mx-auto">
+                <div class="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <span class="animate-spin text-xl">⏳</span> Processando seu vídeo...
+                        </h3>
+                        <span id="status-text"
+                            class="text-sm text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">Iniciando</span>
+                    </div>
+
+                    <!-- Steps -->
+                    <div class="grid grid-cols-5 gap-2 mb-6 text-center text-xs font-semibold">
+                        <div class="step-item text-slate-500">📥 Download</div>
+                        <div class="step-item text-slate-500">🧠 Análise</div>
+                        <div class="step-item text-slate-500">✂️ Cortes</div>
+                        <div class="step-item text-slate-500">🎨 Polimento</div>
+                        <div class="step-item text-slate-500">🚀 Finalização</div>
+                    </div>
+
+                    <!-- Console Log Preview -->
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-semibold text-slate-500">TERMINAL DE SAÍDA</span>
+                        <button onclick="toggleLogs()" class="text-xs text-blue-400 hover:text-blue-300">Expandir /
+                            Contrair</button>
+                    </div>
+                    <div class="bg-black rounded-lg p-4 font-mono text-xs text-green-400 h-64 overflow-y-auto transition-all duration-300"
+                        id="logs-preview">
+                        Esperando logs...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section (Hidden by default) -->
+            <section id="results-section" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Clips Gerados (V3)</h2>
+                    <button onclick="downloadAll()"
+                        class="text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-600">
+                        ⬇ Baixar Tudo
+                    </button>
+                </div>
+
+                <div id="clips-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Cards will be injected here JS -->
+                </div>
+            </section>
+
+            <!-- Video Player Modal -->
+            <div id="video-modal"
+                class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+                <div
+                    class="bg-slate-900 rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full shadow-2xl border border-slate-700 relative">
+                    <div class="flex justify-between items-center p-4 border-b border-slate-800">
+                        <h3 id="modal-title" class="text-sm font-bold text-white truncate pr-4">Preview</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+                    </div>
+                    <div class="aspect-[9/16] bg-black relative">
+                        <video id="modal-video" controls class="w-full h-full object-contain"></video>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-2">
+                        <a id="modal-download" href="#" download
+                            class="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold text-center">
+                            ⬇ Baixar MP4
+                        </a>
+                        <button onclick="closeModal()"
+                            class="bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-bold">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- JS Logic -->
+        <script>
+            let currentMode = 'url';
+
+            // --- State Management ---
+            async function loadState ()
+            {
+                try
+                {
+                    const res = await fetch( '/status' );
+                    const state = await res.json();
+
+                    // Update Inputs
+                    if ( state.current_project )
+                    {
+                        setMode( state.current_project.mode );
+                        document.getElementById( 'input-val' ).value = state.current_project.input;
+                    }
+
+                    // Update Progress or Results
+                    if ( state.running || state.status === 'processing' )
+                    {
+                        showProgress();
+                        connectStream();
+                    } else if ( state.status === 'done' )
+                    {
+                        showResults();
+                        document.getElementById( 'logs-preview' ).innerText = state.logs.join( '\\n' );
+                    }
+
+                    // Mostrar histórico SEMPRE que houver um projeto anterior
+                    if ( state.current_project && !state.running && state.status !== 'processing' )
+                    {
+                        showHistory( state );
+                    }
+
+                    // Connection Status
+                    const statusDot = document.querySelector( '#connection-status span' );
+                    const statusText = document.querySelector( '#connection-status' );
+                    statusDot.classList.remove( 'bg-slate-500' );
+                    statusDot.classList.add( 'bg-green-500' );
+                    statusText.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Online';
+
+                } catch ( e )
+                {
+                    console.error( "Server offline", e );
+                }
+            }
+
+            // --- History Functions ---
+            function showHistory ( state )
+            {
+                const historySection = document.getElementById( 'history-section' );
+                const historyFile = document.getElementById( 'history-file' );
+                const historyStatus = document.getElementById( 'history-status' );
+
+                if ( state.current_project )
+                {
+                    const filename = state.current_project.input.split( '/' ).pop().split( '\\\\' ).pop();
+                    historyFile.textContent = filename;
+
+                    // Detectar último stage dos logs
+                    const logs = state.logs.join( ' ' );
+                    let lastStage = "Início";
+                    if ( logs.includes( "STAGE 4" ) ) lastStage = "Edição de Clips";
+                    else if ( logs.includes( "STAGE 3" ) ) lastStage = "Análise Viral";
+                    else if ( logs.includes( "STAGE 2.5" ) ) lastStage = "Orquestração (IA)";
+                    else if ( logs.includes( "STAGE 2" ) ) lastStage = "Transcrição";
+                    else if ( logs.includes( "STAGE 1" ) ) lastStage = "Download/Extração";
+
+                    if ( state.status === 'error' )
+                    {
+                        historyStatus.textContent = `❌ Erro no ${ lastStage }`;
+                        historyStatus.className = 'text-xs text-red-400';
+                    } else if ( state.status === 'done' )
+                    {
+                        historyStatus.textContent = `✅ Concluído com sucesso`;
+                        historyStatus.className = 'text-xs text-green-400';
+                    } else
+                    {
+                        historyStatus.textContent = `⏸️ Pausado no ${ lastStage }`;
+                        historyStatus.className = 'text-xs text-yellow-400';
+                    }
+
+                    historySection.classList.remove( 'hidden' );
+                }
+            }
+
+
+            async function continueProcessing ()
+            {
+                // Buscar último projeto e continuar
+                const res = await fetch( '/status' );
+                const state = await res.json();
+
+                if ( state.current_project )
+                {
+                    document.getElementById( 'input-val' ).value = state.current_project.input;
+                    setMode( state.current_project.mode );
+                    document.getElementById( 'history-section' ).classList.add( 'hidden' );
+                    runClipper(); // Vai usar checkpoints automaticamente
+                }
+            }
+
+            async function reprocessFromScratch ()
+            {
+                // Limpar cache e recomeçar
+                if ( confirm( 'Isso vai apagar todos os arquivos temporários e recomeçar do zero. Continuar?' ) )
+                {
+                    await fetch( '/clear-cache', { method: 'POST' } );
+
+                    const res = await fetch( '/status' );
+                    const state = await res.json();
+
+                    if ( state.current_project )
+                    {
+                        document.getElementById( 'input-val' ).value = state.current_project.input;
+                        setMode( state.current_project.mode );
+                    }
+
+                    document.getElementById( 'history-section' ).classList.add( 'hidden' );
+                    runClipper();
+                }
+            }
+
+
+            // --- UI Modes ---
+            function setMode ( mode )
+            {
+                currentMode = mode;
+                const btnUrl = document.getElementById( 'tab-url' );
+                const btnFile = document.getElementById( 'tab-file' );
+                const input = document.getElementById( 'input-val' );
+                const browseBtn = document.getElementById( 'browse-btn' );
+
+                if ( mode === 'url' )
+                {
+                    btnUrl.className = "px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all";
+                    btnFile.className = "px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all";
+                    input.placeholder = "Cole a URL do YouTube aqui...";
+                    browseBtn.classList.add( 'hidden' );
+                } else
+                {
+                    btnFile.className = "px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all";
+                    btnUrl.className = "px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all";
+                    input.placeholder = "Selecione um arquivo local...";
+                    browseBtn.classList.remove( 'hidden' );
+                }
+            }
+
+            // --- Actions ---
+            async function browseFile ()
+            {
+                const res = await fetch( '/browse' );
+                const data = await res.json();
+                if ( data.status === 'success' && data.path )
+                {
+                    document.getElementById( 'input-val' ).value = data.path;
+                }
+            }
+
+            async function runClipper ()
+            {
+                const input = document.getElementById( 'input-val' ).value;
+                if ( !input ) return alert( "Digite uma URL ou escolha um arquivo!" );
+
+                showProgress();
+
+                try
+                {
+                    const res = await fetch( '/run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify( { mode: currentMode, input: input } )
+                    } );
+                    const data = await res.json();
+                    if ( data.status === 'error' )
+                    {
+                        alert( data.message );
+                        resetUI();
+                    } else
+                    {
+                        connectStream();
+                    }
+                } catch ( e )
+                {
+                    alert( "Erro de conexão" );
+                    resetUI();
+                }
+            }
+
+            function toggleLogs ()
+            {
+                const logs = document.getElementById( 'logs-preview' );
+                if ( logs.classList.contains( 'h-64' ) )
+                {
+                    logs.classList.remove( 'h-64' );
+                    logs.classList.add( 'h-[500px]' );
+                } else
+                {
+                    logs.classList.remove( 'h-[500px]' );
+                    logs.classList.add( 'h-64' );
+                }
+            }
+
+            function showProgress ()
+            {
+                document.getElementById( 'input-section' ).classList.add( 'opacity-50', 'pointer-events-none' );
+                document.getElementById( 'progress-section' ).classList.remove( 'hidden' );
+                document.getElementById( 'results-section' ).classList.add( 'hidden' );
+            }
+
+            async function showResults ()
+            {
+                document.getElementById( 'input-section' ).classList.remove( 'opacity-50', 'pointer-events-none' );
+                document.getElementById( 'progress-section' ).classList.add( 'hidden' );
+                document.getElementById( 'results-section' ).classList.remove( 'hidden' );
+
+                // Fetch clips
+                try
+                {
+                    const res = await fetch( '/api/clips' );
+                    const clips = await res.json();
+
+                    const grid = document.getElementById( 'clips-grid' );
+                    grid.innerHTML = '';
+
+                    if ( clips.length === 0 )
+                    {
+                        grid.innerHTML = '<p class="text-slate-500 col-span-3 text-center">Nenhum clipe encontrado ainda.</p>';
+                        return;
+                    }
+
+                    clips.forEach( clip =>
+                    {
+                        // Badge Color
+                        let badgeClass = 'score-low';
+                        if ( clip.score >= 80 ) badgeClass = 'score-high';
+                        else if ( clip.score >= 50 ) badgeClass = 'score-med';
+
+                        // Card HTML with Play Action
+                        const html = `
+                            <div class="glass-panel rounded-xl overflow-hidden hover:scale-[1.02] transition-transform duration-300 group">
+                                <div class="relative aspect-[9/16] bg-black cursor-pointer" onclick="openModal('${ clip.video }', '${ clip.title.replace( /'/g, "\\'" ) }')">
+                                    ${ clip.thumb ?
+                                `<img src="/exports/${ clip.thumb }" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Thumbnail">` :
+                                `<div class="flex items-center justify-center h-full text-slate-600">Sem Capa</div>`
+                            }
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="bg-white/20 backdrop-blur-sm p-3 rounded-full">
+                                            <span class="text-3xl">▶️</span>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${ badgeClass }">
+                                        viral score: ${ clip.score }
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
+                                         <p class="text-white font-bold text-sm line-clamp-2">${ clip.title }</p>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 flex gap-2">
+                                    <button onclick="openModal('${ clip.video }', '${ clip.title.replace( /'/g, "\\'" ) }')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-center py-2 rounded-lg text-sm font-semibold transition-colors">
+                                        Assistir
+                                    </button>
+                                    <button onclick="window.open('/exports/${ clip.video.replace( '.mp4', '.json' ).replace( 'clip_', 'metadata_' ) }', '_blank')" class="px-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg" title="Ver Metadados">
+                                        📝
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        grid.innerHTML += html;
+                    } );
+
+                } catch ( e )
+                {
+                    console.error( "Erro ao carregar clips", e );
+                }
+            }
+
+            // --- Modal Logic ---
+            function openModal ( videoFile, title )
+            {
+                const modal = document.getElementById( 'video-modal' );
+                const videoEl = document.getElementById( 'modal-video' );
+                const dlBtn = document.getElementById( 'modal-download' );
+                const titleEl = document.getElementById( 'modal-title' );
+
+                videoEl.src = `/exports/${ videoFile }`;
+                dlBtn.href = `/exports/${ videoFile }`;
+                titleEl.textContent = title;
+
+                modal.classList.remove( 'hidden' );
+                videoEl.play();
+            }
+
+            function closeModal ()
+            {
+                const modal = document.getElementById( 'video-modal' );
+                const videoEl = document.getElementById( 'modal-video' );
+
+                videoEl.pause();
+                videoEl.src = "";
+                modal.classList.add( 'hidden' );
+            }
+
+            async function downloadAll ()
+            {
+                alert( "Use o botão de baixar em cada card por enquanto!" );
+            }
+
+            function resetUI ()
+            {
+                document.getElementById( 'input-section' ).classList.remove( 'opacity-50', 'pointer-events-none' );
+                document.getElementById( 'progress-section' ).classList.add( 'hidden' );
+            }
+
+            function connectStream ()
+            {
+                const logsObj = document.getElementById( 'logs-preview' );
+                const statusText = document.getElementById( 'status-text' );
+                const evtSource = new EventSource( "/stream" );
+
+                evtSource.onmessage = function ( e )
+                {
+                    let text = e.data;
+                    if ( text.startsWith( "data: " ) ) text = text.substring( 6 );
+
+                    logsObj.innerText += text + "\\n";
+                    logsObj.scrollTop = logsObj.scrollHeight;
+
+                    // Simple parser for status updates
+                    if ( text.includes( "STAGE 1" ) ) statusText.innerText = "Baixando Vídeo...";
+                    if ( text.includes( "STAGE 2" ) ) statusText.innerText = "Transcrevendo...";
+                    if ( text.includes( "STAGE 2.5" ) ) statusText.innerText = "Planejamento (Orchestrator)...";
+                    if ( text.includes( "STAGE 4" ) ) statusText.innerText = "Cortando & Editando...";
+                    if ( text.includes( "Thumbnail" ) ) statusText.innerText = "Gerando Arte...";
+
+                    if ( text.includes( "[PROCESS FINISHED]" ) )
+                    {
+                        evtSource.close();
+                        statusText.innerText = "Concluído!";
+                        showResults(); // Enable results view
+                    }
+                };
+
+                evtSource.onerror = function ()
+                {
+                    if ( evtSource.readyState === EventSource.CLOSED )
+                    {
+                        logsObj.innerText += "\\n[Desconectado]\\n";
+                    }
+                };
+            }
+
+            // Init
+            window.onload = loadState;
+
+
+        </script>
+    </body>
+
+</html>
