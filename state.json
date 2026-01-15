@@ -1,0 +1,23 @@
+{
+  "current_project": {
+    "input": "C:/Users/12001036/Downloads/videoplayback.mp4",
+    "mode": "file"
+  },
+  "status": "processing",
+  "logs": [
+    "",
+    "============================================================",
+    "\ud83c\udfac AI VIDEO CLIPPER - Sistema de Clipping Autom\u00e1tico",
+    "============================================================",
+    "",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main |",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | STAGE 1: AQUISI\u00c7\u00c3O DO V\u00cdDEO",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | \ud83d\udcc2 Processando arquivo local: videoplayback.mp4",
+    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | \ud83d\udd0a Extraindo \u00e1udio do arquivo local..."
+  ],
+  "generated_clips": [],
+  "last_updated": 0,
+  "running": false
+}
