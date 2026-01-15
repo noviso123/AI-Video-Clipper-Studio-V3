@@ -1,7 +1,10 @@
 """
-Módulo de Geração de Thumbnails IA (Fase 21) - CORRIGIDO
+Módulo de Geração de Thumbnails IA (Fase 21) - VERSÃO 2.0
 Cria thumbnails virais extraindo rostos e adicionando textos/efeitos.
-Corrigido: dimensionamento, detecção de rostos, fontes, corte adequado.
+MELHORIAS V2:
+- Busca extensiva por frames com rostos em todo o vídeo
+- Fallback inteligente para vídeos sem rostos (screencast, animações)
+- Melhor seleção de frames baseado em qualidade visual
 """
 import logging
 import cv2
@@ -19,7 +22,7 @@ class ThumbnailGenerator:
     THUMBNAIL_SIZE_VERTICAL = (1080, 1920)  # 9:16 para TikTok/Reels
     
     def __init__(self):
-        logger.info("🖼️ Thumbnail Generator: Inicializado (Versão Corrigida)")
+        logger.info("🖼️ Thumbnail Generator: Inicializado (Versão 2.0)")
         # Cores vibrantes para stroke/borda
         self.stroke_colors = ['#FF0000', '#00FF00', '#FFFF00', '#00FFFF', '#FF00FF']
         
@@ -49,8 +52,8 @@ class ThumbnailGenerator:
             vertical: Se True, gera thumbnail vertical (9:16), senão horizontal (16:9)
         """
         try:
-            # 1. Encontrar o melhor frame (com rosto visível)
-            frame = self._find_best_frame(video_path, moment)
+            # 1. Encontrar o melhor frame (PRIORIZA frames com rostos)
+            frame, has_face = self._find_best_frame_with_face(video_path, moment)
             
             if frame is None:
                 logger.warning("   ⚠️ Falha ao extrair frame para thumbnail")
@@ -68,8 +71,9 @@ class ThumbnailGenerator:
             # 5. Aplicar melhorias visuais
             img = self._enhance_image(img)
             
-            # 6. Tentar remover fundo (opcional)
-            img = self._try_remove_background(img)
+            # 6. Tentar remover fundo (apenas se tem rosto)
+            if has_face:
+                img = self._try_remove_background(img)
             
             # 7. Adicionar texto overlay
             img = self._add_text_overlay(img, moment.get('hook', ''), target_size)
@@ -79,6 +83,7 @@ class ThumbnailGenerator:
             img.save(str(output_path), quality=95, optimize=True)
             
             logger.info(f"   🖼️ Thumbnail salva: {output_path.name} ({target_size[0]}x{target_size[1]})")
+            logger.info(f"      Rosto detectado: {'Sim' if has_face else 'Não (usando melhor frame)'}")
             return output_path
 
         except Exception as e:
@@ -87,68 +92,112 @@ class ThumbnailGenerator:
             traceback.print_exc()
             return None
 
-    def _find_best_frame(self, video_path: Path, moment: dict) -> np.ndarray:
+    def _find_best_frame_with_face(self, video_path: Path, moment: dict) -> tuple:
         """
-        Encontra o melhor frame no intervalo do momento.
-        Prioriza frames com rostos visíveis e boa iluminação.
+        Encontra o melhor frame no vídeo, priorizando frames com rostos.
+        
+        ESTRATÉGIA:
+        1. Primeiro, busca frames com rostos no intervalo do momento
+        2. Se não encontrar, busca em todo o vídeo
+        3. Se ainda não encontrar, retorna o frame de melhor qualidade
+        
+        Returns:
+            Tupla (frame, has_face)
         """
         cap = cv2.VideoCapture(str(video_path))
         
         if not cap.isOpened():
             logger.error(f"   ❌ Não foi possível abrir o vídeo: {video_path}")
-            return None
+            return None, False
         
         fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        duration = total_frames / fps
+        
         start_time = moment.get('start', 0)
-        end_time = moment.get('end', start_time + 10)
+        end_time = moment.get('end', min(start_time + 30, duration))
         
-        # Amostrar frames no intervalo
-        sample_times = [
-            start_time + (end_time - start_time) * 0.2,  # 20%
-            start_time + (end_time - start_time) * 0.4,  # 40%
-            start_time + (end_time - start_time) * 0.5,  # 50% (meio)
-            start_time + (end_time - start_time) * 0.6,  # 60%
-            start_time + (end_time - start_time) * 0.8,  # 80%
-        ]
+        logger.info(f"   🔍 Buscando melhor frame para thumbnail...")
+        logger.info(f"      Intervalo do momento: {start_time:.1f}s - {end_time:.1f}s")
         
-        best_frame = None
-        best_score = -1
+        # ========== FASE 1: Buscar no intervalo do momento ==========
+        best_face_frame = None
+        best_face_score = -1
+        best_quality_frame = None
+        best_quality_score = -1
         
-        for timestamp in sample_times:
+        # Amostrar mais frames no intervalo
+        interval_duration = end_time - start_time
+        num_samples = min(20, max(5, int(interval_duration)))
+        
+        for i in range(num_samples):
+            timestamp = start_time + (interval_duration * i / num_samples)
             cap.set(cv2.CAP_PROP_POS_MSEC, timestamp * 1000)
             ret, frame = cap.read()
             
             if not ret or frame is None:
                 continue
             
-            # Calcular score do frame
-            score = self._calculate_frame_score(frame)
+            # Verificar se tem rosto
+            face_score, has_face = self._calculate_face_score(frame)
+            quality_score = self._calculate_quality_score(frame)
             
-            if score > best_score:
-                best_score = score
-                best_frame = frame.copy()
+            if has_face and face_score > best_face_score:
+                best_face_score = face_score
+                best_face_frame = frame.copy()
+            
+            if quality_score > best_quality_score:
+                best_quality_score = quality_score
+                best_quality_frame = frame.copy()
+        
+        # Se encontrou frame com rosto no intervalo, usar
+        if best_face_frame is not None:
+            logger.info(f"      ✅ Encontrado frame com rosto no intervalo (score: {best_face_score:.1f})")
+            cap.release()
+            return best_face_frame, True
+        
+        # ========== FASE 2: Buscar em todo o vídeo ==========
+        logger.info(f"      ⚠️ Sem rostos no intervalo. Buscando em todo o vídeo...")
+        
+        # Amostrar frames ao longo de todo o vídeo
+        num_global_samples = min(50, max(10, int(duration / 2)))
+        
+        for i in range(num_global_samples):
+            timestamp = duration * i / num_global_samples
+            cap.set(cv2.CAP_PROP_POS_MSEC, timestamp * 1000)
+            ret, frame = cap.read()
+            
+            if not ret or frame is None:
+                continue
+            
+            face_score, has_face = self._calculate_face_score(frame)
+            
+            if has_face and face_score > best_face_score:
+                best_face_score = face_score
+                best_face_frame = frame.copy()
         
         cap.release()
         
-        # Se não encontrou nenhum frame bom, pegar do meio
-        if best_frame is None:
-            cap = cv2.VideoCapture(str(video_path))
-            middle_time = (start_time + end_time) / 2
-            cap.set(cv2.CAP_PROP_POS_MSEC, middle_time * 1000)
-            ret, best_frame = cap.read()
-            cap.release()
+        # Se encontrou frame com rosto em qualquer lugar do vídeo
+        if best_face_frame is not None:
+            logger.info(f"      ✅ Encontrado frame com rosto no vídeo (score: {best_face_score:.1f})")
+            return best_face_frame, True
         
-        return best_frame
+        # ========== FASE 3: Fallback - usar melhor frame de qualidade ==========
+        logger.info(f"      ℹ️ Vídeo sem rostos detectáveis. Usando frame de melhor qualidade.")
+        return best_quality_frame, False
 
-    def _calculate_frame_score(self, frame: np.ndarray) -> float:
+    def _calculate_face_score(self, frame: np.ndarray) -> tuple:
         """
-        Calcula um score de qualidade para o frame.
-        Considera: presença de rostos, nitidez, iluminação.
-        """
-        score = 0.0
+        Calcula score baseado em rostos detectados.
         
-        # 1. Detectar rostos (+50 pontos por rosto)
-        if self.face_cascade is not None:
+        Returns:
+            Tupla (score, has_face)
+        """
+        if self.face_cascade is None:
+            return 0.0, False
+        
+        try:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = self.face_cascade.detectMultiScale(
                 gray, 
@@ -156,29 +205,73 @@ class ThumbnailGenerator:
                 minNeighbors=5,
                 minSize=(50, 50)
             )
-            score += len(faces) * 50
             
-            # Bonus se rosto está centralizado
-            if len(faces) > 0:
-                h, w = frame.shape[:2]
-                for (x, y, fw, fh) in faces:
-                    face_center_x = x + fw/2
-                    face_center_y = y + fh/2
-                    # Quanto mais perto do centro, melhor
-                    dist_from_center = abs(face_center_x - w/2) / w + abs(face_center_y - h/2) / h
-                    score += (1 - dist_from_center) * 20
+            if len(faces) == 0:
+                return 0.0, False
+            
+            score = 0.0
+            h, w = frame.shape[:2]
+            
+            for (x, y, fw, fh) in faces:
+                # Tamanho do rosto (rostos maiores = melhor)
+                face_area = fw * fh
+                frame_area = w * h
+                size_score = (face_area / frame_area) * 100
+                
+                # Posição (rostos centralizados = melhor)
+                face_center_x = x + fw/2
+                face_center_y = y + fh/2
+                dist_x = abs(face_center_x - w/2) / w
+                dist_y = abs(face_center_y - h/2) / h
+                position_score = (1 - dist_x) * 20 + (1 - dist_y) * 20
+                
+                score += size_score + position_score
+            
+            # Bonus para um único rosto bem enquadrado
+            if len(faces) == 1:
+                score += 30
+            
+            return score, True
+            
+        except Exception as e:
+            logger.debug(f"   Erro ao calcular face score: {e}")
+            return 0.0, False
+
+    def _calculate_quality_score(self, frame: np.ndarray) -> float:
+        """
+        Calcula score de qualidade visual do frame.
+        Considera: nitidez, iluminação, contraste.
+        """
+        score = 0.0
         
-        # 2. Calcular nitidez (Laplacian variance)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-        score += min(laplacian_var / 100, 30)  # Max 30 pontos
-        
-        # 3. Calcular iluminação (evitar frames muito escuros ou claros)
-        brightness = np.mean(gray)
-        if 80 < brightness < 180:  # Faixa ideal
-            score += 20
-        elif 50 < brightness < 200:
-            score += 10
+        try:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            # 1. Nitidez (Laplacian variance)
+            laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+            score += min(laplacian_var / 100, 30)
+            
+            # 2. Iluminação (evitar frames muito escuros ou claros)
+            brightness = np.mean(gray)
+            if 80 < brightness < 180:
+                score += 30
+            elif 50 < brightness < 200:
+                score += 15
+            
+            # 3. Contraste
+            contrast = gray.std()
+            score += min(contrast / 10, 20)
+            
+            # 4. Colorfulness (evitar frames monocromáticos)
+            if len(frame.shape) == 3:
+                b, g, r = cv2.split(frame)
+                rg = np.absolute(r.astype(float) - g.astype(float))
+                yb = np.absolute(0.5 * (r.astype(float) + g.astype(float)) - b.astype(float))
+                colorfulness = np.sqrt(rg.mean()**2 + yb.mean()**2) + 0.3 * np.sqrt(rg.std()**2 + yb.std()**2)
+                score += min(colorfulness / 10, 20)
+            
+        except Exception as e:
+            logger.debug(f"   Erro ao calcular quality score: {e}")
         
         return score
 
@@ -211,6 +304,11 @@ class ThumbnailGenerator:
                 face_centers_y = [y + h/2 for (x, y, w, h) in faces]
                 crop_center_x = np.mean(face_centers_x)
                 crop_center_y = np.mean(face_centers_y)
+                
+                # Para thumbnail vertical, posicionar rosto no terço superior
+                if target_h > target_w:  # Vertical
+                    # Ajustar para que o rosto fique no terço superior
+                    crop_center_y = min(crop_center_y, original_h * 0.4)
         
         # Calcular dimensões do crop
         if original_ratio > target_ratio:

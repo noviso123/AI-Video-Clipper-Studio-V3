@@ -282,6 +282,11 @@ class VideoEditor:
     ) -> VideoFileClip:
         """
         Redimensiona vídeo para formato vertical 9:16 com tracking inteligente.
+        
+        MELHORIAS V2:
+        - Detecta vídeos sem rostos (screencast, animações)
+        - Usa crop central otimizado para conteúdo sem rostos
+        - Avisa quando não detecta rostos
         """
         original_w, original_h = clip.size
         target_ratio = self.target_height / self.target_width  # 16/9 = 1.77...
@@ -289,6 +294,13 @@ class VideoEditor:
         logger.info(f"   Resolução original: {original_w}x{original_h}")
         logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
 
+        # Verificar se tem rostos detectados
+        has_faces = face_data and face_data.get('total_faces_detected', 0) > 0
+        
+        if not has_faces and crop_mode in ['face_tracking', 'smart']:
+            logger.warning(f"   ⚠️ Nenhum rosto detectado no clipe - usando crop central otimizado")
+            return self._crop_center_optimized(clip)
+        
         if crop_mode == 'center' or face_data is None:
             return self._crop_center(clip)
         
@@ -444,6 +456,84 @@ class VideoEditor:
         
         clip_resized = clip_cropped.resize((self.target_width, self.target_height))
         return clip_resized
+
+    def _crop_center_optimized(self, clip: VideoFileClip) -> VideoFileClip:
+        """
+        Crop central otimizado para vídeos sem rostos.
+        Tenta manter o conteúdo principal visível (screencast, animações, gráficos).
+        
+        ESTRATÉGIA:
+        - Analisa onde está o conteúdo principal (não apenas centro geométrico)
+        - Evita cortar texto ou elementos importantes nas bordas
+        - Prioriza a área com mais atividade/contraste
+        """
+        original_w, original_h = clip.size
+        target_ratio = self.target_height / self.target_width
+        
+        # Calcular dimensões do crop
+        crop_width = int(original_h / target_ratio)
+        if crop_width > original_w:
+            crop_width = original_w
+            crop_height = int(original_w * target_ratio)
+        else:
+            crop_height = original_h
+        
+        # Para vídeos sem rostos, analisar onde está o conteúdo principal
+        # Pegar um frame do meio para análise
+        try:
+            frame = clip.get_frame(clip.duration / 2)
+            center_x, center_y = self._find_content_center(frame)
+        except:
+            center_x = original_w / 2
+            center_y = original_h / 2
+        
+        # Garantir limites
+        center_x = max(crop_width / 2, min(center_x, original_w - crop_width / 2))
+        center_y = max(crop_height / 2, min(center_y, original_h - crop_height / 2))
+        
+        logger.info(f"   🎯 Crop otimizado (sem rostos): centro em ({center_x:.0f}, {center_y:.0f})")
+        
+        clip_cropped = crop(
+            clip,
+            x_center=center_x,
+            y_center=center_y,
+            width=crop_width,
+            height=crop_height
+        )
+        
+        clip_resized = clip_cropped.resize((self.target_width, self.target_height))
+        return clip_resized
+
+    def _find_content_center(self, frame: np.ndarray) -> Tuple[float, float]:
+        """
+        Encontra o centro do conteúdo principal em um frame.
+        Útil para vídeos sem rostos (screencast, animações).
+        """
+        h, w = frame.shape[:2]
+        
+        try:
+            # Converter para grayscale
+            if len(frame.shape) == 3:
+                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            else:
+                gray = frame
+            
+            # Detectar bordas (onde tem conteúdo)
+            edges = cv2.Canny(gray, 50, 150)
+            
+            # Encontrar momentos da imagem de bordas
+            moments = cv2.moments(edges)
+            
+            if moments['m00'] > 0:
+                cx = moments['m10'] / moments['m00']
+                cy = moments['m01'] / moments['m00']
+                return (cx, cy)
+            
+        except Exception as e:
+            logger.debug(f"   Erro ao encontrar centro do conteúdo: {e}")
+        
+        # Fallback: centro geométrico
+        return (w / 2, h / 2)
 
     def batch_create_clips(
         self,
