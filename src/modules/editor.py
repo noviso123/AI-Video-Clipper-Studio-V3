@@ -16,6 +16,13 @@ from ..core.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# Import opcional do detector de legendas
+try:
+    from .subtitle_detector import SubtitleDetector
+    SUBTITLE_DETECTOR_AVAILABLE = True
+except ImportError:
+    SUBTITLE_DETECTOR_AVAILABLE = False
+
 
 class FaceTracker:
     """Classe para detecção e tracking de rostos em vídeos."""
@@ -115,7 +122,7 @@ class FaceTracker:
 
 
 class VideoEditor:
-    """Editor de vídeo para criar clipes 9:16 com face tracking real."""
+    """Editor de vídeo para criar clipes 9:16 com face tracking real e detecção de legendas."""
 
     def __init__(self):
         self.target_width, self.target_height = Config.OUTPUT_RESOLUTION
@@ -123,9 +130,15 @@ class VideoEditor:
         self.quality_settings = Config.get_quality_settings()
         self.face_tracker = FaceTracker()
         
+        # Inicializar detector de legendas
+        self.subtitle_detector = None
+        if SUBTITLE_DETECTOR_AVAILABLE:
+            self.subtitle_detector = SubtitleDetector()
+        
         logger.info(f"🎬 Video Editor inicializado")
         logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
         logger.info(f"   Face Tracking: {'Ativo' if self.face_tracker.initialized else 'Inativo'}")
+        logger.info(f"   Detecção de Legendas: {'Ativo' if self.subtitle_detector else 'Inativo'}")
 
     def create_clip(
         self,
@@ -161,8 +174,13 @@ class VideoEditor:
             if crop_mode in ['face_tracking', 'smart'] and Config.FACE_TRACKING_ENABLED:
                 face_data = self._analyze_faces_in_clip(video_path, start_time, end_time)
             
-            # 1. Resize e Crop (9:16) com face tracking
-            final_clip = self._resize_to_vertical(clip, crop_mode, face_data)
+            # Detectar legendas existentes no vídeo
+            subtitle_data = None
+            if self.subtitle_detector:
+                subtitle_data = self.subtitle_detector.detect_subtitle_regions(video_path, sample_count=5)
+            
+            # 1. Resize e Crop (9:16) com face tracking e consideração de legendas
+            final_clip = self._resize_to_vertical(clip, crop_mode, face_data, subtitle_data)
 
             # 2. Visual Polish (Color Grading)
             try:
@@ -278,7 +296,8 @@ class VideoEditor:
         self, 
         clip: VideoFileClip, 
         crop_mode: str,
-        face_data: Dict = None
+        face_data: Dict = None,
+        subtitle_data: Dict = None
     ) -> VideoFileClip:
         """
         Redimensiona vídeo para formato vertical 9:16 com tracking inteligente.
@@ -287,34 +306,43 @@ class VideoEditor:
         - Detecta vídeos sem rostos (screencast, animações)
         - Usa crop central otimizado para conteúdo sem rostos
         - Avisa quando não detecta rostos
+        
+        MELHORIAS V3:
+        - Considera legendas existentes no crop
+        - Evita cortar legendas hardcoded
         """
         original_w, original_h = clip.size
         target_ratio = self.target_height / self.target_width  # 16/9 = 1.77...
         
         logger.info(f"   Resolução original: {original_w}x{original_h}")
         logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
+        
+        # Informar sobre legendas detectadas
+        if subtitle_data and subtitle_data.get('has_subtitles'):
+            logger.info(f"   📝 Legendas existentes detectadas: {subtitle_data.get('subtitle_position')}")
+            logger.info(f"      Confiança: {subtitle_data.get('confidence', 0):.1%}")
 
         # Verificar se tem rostos detectados
         has_faces = face_data and face_data.get('total_faces_detected', 0) > 0
         
         if not has_faces and crop_mode in ['face_tracking', 'smart']:
             logger.warning(f"   ⚠️ Nenhum rosto detectado no clipe - usando crop central otimizado")
-            return self._crop_center_optimized(clip)
+            return self._crop_center_optimized(clip, subtitle_data)
         
         if crop_mode == 'center' or face_data is None:
-            return self._crop_center(clip)
+            return self._crop_center(clip, subtitle_data)
         
         elif crop_mode == 'face_tracking' and face_data and face_data.get('avg_center'):
-            return self._crop_with_face_tracking(clip, face_data)
+            return self._crop_with_face_tracking(clip, face_data, subtitle_data)
         
         elif crop_mode == 'smart' and face_data:
-            return self._crop_smart(clip, face_data)
+            return self._crop_smart(clip, face_data, subtitle_data)
         
         else:
-            return self._crop_center(clip)
+            return self._crop_center(clip, subtitle_data)
 
-    def _crop_center(self, clip: VideoFileClip) -> VideoFileClip:
-        """Crop central simples para 9:16."""
+    def _crop_center(self, clip: VideoFileClip, subtitle_data: Dict = None) -> VideoFileClip:
+        """Crop central simples para 9:16, considerando legendas existentes."""
         original_w, original_h = clip.size
         target_ratio = self.target_height / self.target_width
 
@@ -326,6 +354,12 @@ class VideoEditor:
             crop_height = int(original_w * target_ratio)
             x_center = original_w / 2
             y_center = original_h / 2
+            
+            # Ajustar Y se houver legendas
+            if subtitle_data and subtitle_data.get('has_subtitles'):
+                y_center = self._adjust_crop_for_subtitles(
+                    y_center, crop_height, original_h, subtitle_data
+                )
 
             clip_cropped = crop(
                 clip,
@@ -350,11 +384,45 @@ class VideoEditor:
         # Redimensionar para resolução alvo
         clip_resized = clip_cropped.resize((self.target_width, self.target_height))
         return clip_resized
+    
+    def _adjust_crop_for_subtitles(
+        self,
+        y_center: float,
+        crop_height: int,
+        original_h: int,
+        subtitle_data: Dict
+    ) -> float:
+        """
+        Ajusta o centro Y do crop para incluir legendas existentes.
+        
+        Se as legendas estão na base, move o crop para baixo.
+        Se estão no topo, move para cima.
+        """
+        subtitle_pos = subtitle_data.get('subtitle_position')
+        
+        if subtitle_pos == 'bottom':
+            # Legendas na base: mover crop para baixo para incluí-las
+            # Garantir que a base do crop chegue até as legendas
+            ideal_y = original_h - crop_height / 2
+            y_center = min(y_center + crop_height * 0.1, ideal_y)
+            logger.info(f"   📝 Ajustando crop para incluir legendas na base")
+            
+        elif subtitle_pos == 'top':
+            # Legendas no topo: mover crop para cima
+            ideal_y = crop_height / 2
+            y_center = max(y_center - crop_height * 0.1, ideal_y)
+            logger.info(f"   📝 Ajustando crop para incluir legendas no topo")
+        
+        # Garantir limites
+        y_center = max(crop_height / 2, min(y_center, original_h - crop_height / 2))
+        
+        return y_center
 
     def _crop_with_face_tracking(
         self, 
         clip: VideoFileClip, 
-        face_data: Dict
+        face_data: Dict,
+        subtitle_data: Dict = None
     ) -> VideoFileClip:
         """
         Crop dinâmico que segue o rosto detectado.
@@ -407,12 +475,13 @@ class VideoEditor:
         clip_resized = clip_cropped.resize((self.target_width, self.target_height))
         return clip_resized
 
-    def _crop_smart(self, clip: VideoFileClip, face_data: Dict) -> VideoFileClip:
+    def _crop_smart(self, clip: VideoFileClip, face_data: Dict, subtitle_data: Dict = None) -> VideoFileClip:
         """
         Crop inteligente que considera:
         - Rostos detectados
         - Regra dos terços
         - Movimento no vídeo
+        - Legendas existentes
         """
         original_w, original_h = clip.size
         target_ratio = self.target_height / self.target_width
@@ -457,7 +526,7 @@ class VideoEditor:
         clip_resized = clip_cropped.resize((self.target_width, self.target_height))
         return clip_resized
 
-    def _crop_center_optimized(self, clip: VideoFileClip) -> VideoFileClip:
+    def _crop_center_optimized(self, clip: VideoFileClip, subtitle_data: Dict = None) -> VideoFileClip:
         """
         Crop central otimizado para vídeos sem rostos.
         Tenta manter o conteúdo principal visível (screencast, animações, gráficos).
@@ -466,6 +535,7 @@ class VideoEditor:
         - Analisa onde está o conteúdo principal (não apenas centro geométrico)
         - Evita cortar texto ou elementos importantes nas bordas
         - Prioriza a área com mais atividade/contraste
+        - Considera legendas existentes
         """
         original_w, original_h = clip.size
         target_ratio = self.target_height / self.target_width
