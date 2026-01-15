@@ -128,10 +128,13 @@ class AudioEmotionAnalyzer:
 
         try:
             # Fix: Pydub needs explicit ffmpeg path on Windows
-            import imageio_ffmpeg
-            ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-            AudioSegment.converter = ffmpeg_path
-            AudioSegment.ffmpeg = ffmpeg_path
+            try:
+                import imageio_ffmpeg
+                ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+                AudioSegment.converter = ffmpeg_path
+                AudioSegment.ffmpeg = ffmpeg_path
+            except:
+                pass  # Usar ffmpeg do sistema
 
             # Usar pydub para detectar silêncios
             audio = AudioSegment.from_file(str(audio_path))
@@ -259,6 +262,10 @@ class AudioEmotionAnalyzer:
             'intensity': np.mean([p['intensity'] for p in peaks]),
             'peak_count': len(peaks)
         }
+
+
+# Alias para compatibilidade
+AudioAnalyzer = AudioEmotionAnalyzer
 
 
 if __name__ == "__main__":

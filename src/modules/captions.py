@@ -260,8 +260,27 @@ class DynamicCaptions:
         """
         Cria legendas por frase (fallback se word-level não disponível)
         """
-        return video_clip # Desabilitado temporariamente para não causar erros
-
+        try:
+            # Implementação básica de legendas por frase
+            if not segments:
+                return video_clip
+            
+            text_clips = []
+            for segment in segments:
+                text_clip = self._create_word_clip(
+                    segment.get('text', ''),
+                    segment.get('start', 0),
+                    segment.get('end', 1),
+                    video_clip.size,
+                    position
+                )
+                if text_clip:
+                    text_clips.append(text_clip)
+            
+            if text_clips:
+                return CompositeVideoClip([video_clip] + text_clips)
+            return video_clip
+            
         except Exception as e:
             logger.error(f"❌ Erro ao criar legendas: {e}")
             return video_clip

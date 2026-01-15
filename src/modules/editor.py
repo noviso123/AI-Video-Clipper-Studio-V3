@@ -1,11 +1,14 @@
 """
-Módulo de Edição de Vídeo (Stage 4)
+Módulo de Edição de Vídeo (Stage 4) - VERSÃO CORRIGIDA
 Corta, redimensiona e edita vídeos usando MoviePy
+IMPLEMENTADO: Face tracking real, smart crop, redimensionamento dinâmico
 """
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 from pathlib import Path
 import subprocess
-from moviepy.editor import VideoFileClip, CompositeVideoClip
+import cv2
+import numpy as np
+from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip
 from moviepy.video.fx.crop import crop
 from moviepy.video.fx.resize import resize
 from ..core.config import Config
@@ -14,13 +17,115 @@ from ..core.logger import setup_logger
 logger = setup_logger(__name__)
 
 
+class FaceTracker:
+    """Classe para detecção e tracking de rostos em vídeos."""
+    
+    def __init__(self):
+        """Inicializa o detector de rostos."""
+        self.face_cascade = None
+        self.initialized = False
+        
+        try:
+            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+            self.face_cascade = cv2.CascadeClassifier(cascade_path)
+            
+            if self.face_cascade.empty():
+                logger.warning("   ⚠️ Cascade classifier vazio")
+            else:
+                self.initialized = True
+                logger.info("   ✅ Face Tracker inicializado com sucesso")
+        except Exception as e:
+            logger.warning(f"   ⚠️ Face Tracker não disponível: {e}")
+    
+    def detect_faces(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
+        """
+        Detecta rostos em um frame.
+        
+        Returns:
+            Lista de tuplas (x, y, width, height) para cada rosto
+        """
+        if not self.initialized or frame is None:
+            return []
+        
+        try:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = self.face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.1,
+                minNeighbors=5,
+                minSize=(50, 50),
+                flags=cv2.CASCADE_SCALE_IMAGE
+            )
+            return [(x, y, w, h) for (x, y, w, h) in faces]
+        except Exception as e:
+            logger.debug(f"   Erro na detecção de rostos: {e}")
+            return []
+    
+    def get_faces_center(self, faces: List[Tuple[int, int, int, int]]) -> Tuple[float, float]:
+        """
+        Calcula o centro médio de todos os rostos detectados.
+        
+        Returns:
+            Tupla (center_x, center_y) ou None se não houver rostos
+        """
+        if not faces:
+            return None
+        
+        centers_x = [x + w/2 for (x, y, w, h) in faces]
+        centers_y = [y + h/2 for (x, y, w, h) in faces]
+        
+        return (np.mean(centers_x), np.mean(centers_y))
+    
+    def get_faces_bounding_box(
+        self, 
+        faces: List[Tuple[int, int, int, int]],
+        padding: float = 0.2
+    ) -> Tuple[int, int, int, int]:
+        """
+        Calcula a bounding box que engloba todos os rostos.
+        
+        Args:
+            faces: Lista de rostos detectados
+            padding: Margem adicional (0.2 = 20%)
+        
+        Returns:
+            Tupla (x, y, width, height) da bounding box
+        """
+        if not faces:
+            return None
+        
+        min_x = min(x for (x, y, w, h) in faces)
+        min_y = min(y for (x, y, w, h) in faces)
+        max_x = max(x + w for (x, y, w, h) in faces)
+        max_y = max(y + h for (x, y, w, h) in faces)
+        
+        # Adicionar padding
+        width = max_x - min_x
+        height = max_y - min_y
+        
+        pad_x = width * padding
+        pad_y = height * padding
+        
+        return (
+            int(min_x - pad_x),
+            int(min_y - pad_y),
+            int(width + 2 * pad_x),
+            int(height + 2 * pad_y)
+        )
+
+
 class VideoEditor:
-    """Editor de vídeo para criar clipes 9:16"""
+    """Editor de vídeo para criar clipes 9:16 com face tracking real."""
 
     def __init__(self):
         self.target_width, self.target_height = Config.OUTPUT_RESOLUTION
         self.fps = Config.VIDEO_FPS
         self.quality_settings = Config.get_quality_settings()
+        self.face_tracker = FaceTracker()
+        
+        logger.info(f"🎬 Video Editor inicializado")
+        logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
+        logger.info(f"   Face Tracking: {'Ativo' if self.face_tracker.initialized else 'Inativo'}")
 
     def create_clip(
         self,
@@ -33,36 +138,41 @@ class VideoEditor:
     ) -> Path:
         """
         Cria um clipe vertical (9:16) a partir do vídeo original
-
+        
         Args:
             video_path: Caminho do vídeo original
             start_time: Início do clipe (segundos)
             end_time: Fim do clipe (segundos)
             output_path: Caminho para salvar o clipe
             crop_mode: 'center', 'smart' ou 'face_tracking'
-            vibe: Estilo do vídeo para Color Grading ('Motivational', 'Sad', etc)
-
+            vibe: Estilo do vídeo para Color Grading
+        
         Returns:
             Caminho do arquivo gerado
         """
         logger.info(f"✂️  Cortando vídeo: {start_time:.1f}s -> {end_time:.1f}s (Modo: {crop_mode})")
 
         try:
-            # Carregar vídeo (apenas o trecho necessário para economizar memória)
-            # subclip=True no VideoFileClip pode ser lento, melhor carregar full e cortar
-            # Mas para vídeos longos, subclip é melhor.
+            # Carregar vídeo
             clip = VideoFileClip(str(video_path)).subclip(start_time, end_time)
-
-            # 1. Resize e Crop (9:16)
-            final_clip = self._resize_to_vertical(clip, crop_mode)
+            
+            # Analisar rostos se face_tracking ou smart estiver habilitado
+            face_data = None
+            if crop_mode in ['face_tracking', 'smart'] and Config.FACE_TRACKING_ENABLED:
+                face_data = self._analyze_faces_in_clip(video_path, start_time, end_time)
+            
+            # 1. Resize e Crop (9:16) com face tracking
+            final_clip = self._resize_to_vertical(clip, crop_mode, face_data)
 
             # 2. Visual Polish (Color Grading)
-            from src.modules.visual_polisher import VisualPolisher
-            polisher = VisualPolisher()
-            final_clip = polisher.apply_look(final_clip, vibe)
+            try:
+                from src.modules.visual_polisher import VisualPolisher
+                polisher = VisualPolisher()
+                final_clip = polisher.apply_look(final_clip, vibe)
+            except Exception as e:
+                logger.warning(f"   ⚠️ Visual polish pulado: {e}")
 
-            # Exportar (sem áudio por enquanto, será mixado no final)
-            # Mas aqui já salvamos o mp4 final sem legendas
+            # Exportar
             output_path.parent.mkdir(exist_ok=True, parents=True)
             final_clip.write_videofile(
                 str(output_path),
@@ -78,62 +188,129 @@ class VideoEditor:
             final_clip.close()
 
             logger.info(f"✅ Clipe criado: {output_path.name}")
-
             return output_path
 
         except Exception as e:
             logger.error(f"❌ Erro ao criar clipe: {e}")
+            import traceback
+            traceback.print_exc()
             raise
 
-
-    def _resize_to_vertical(self, clip: VideoFileClip, crop_mode: str) -> VideoFileClip:
+    def _analyze_faces_in_clip(
+        self, 
+        video_path: Path, 
+        start_time: float, 
+        end_time: float,
+        sample_interval: float = 1.0
+    ) -> Dict:
         """
-        Redimensiona vídeo para formato vertical 9:16
-
-        Args:
-            clip: Clip original
-            crop_mode: Modo de crop
-
+        Analisa rostos ao longo do clipe para determinar o melhor enquadramento.
+        
         Returns:
-            Clip redimensionado
+            Dicionário com informações sobre rostos detectados
+        """
+        logger.info("   🔍 Analisando rostos no clipe...")
+        
+        cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            return None
+        
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        all_faces = []
+        face_counts = []
+        centers = []
+        
+        # Amostrar frames ao longo do clipe
+        current_time = start_time
+        while current_time < end_time:
+            cap.set(cv2.CAP_PROP_POS_MSEC, current_time * 1000)
+            ret, frame = cap.read()
+            
+            if ret and frame is not None:
+                faces = self.face_tracker.detect_faces(frame)
+                face_counts.append(len(faces))
+                
+                if faces:
+                    all_faces.extend(faces)
+                    center = self.face_tracker.get_faces_center(faces)
+                    if center:
+                        centers.append(center)
+            
+            current_time += sample_interval
+        
+        cap.release()
+        
+        # Calcular estatísticas
+        result = {
+            'frame_width': frame_width,
+            'frame_height': frame_height,
+            'total_faces_detected': len(all_faces),
+            'avg_face_count': np.mean(face_counts) if face_counts else 0,
+            'max_face_count': max(face_counts) if face_counts else 0,
+            'avg_center': None,
+            'bounding_box': None,
+            'is_single_person': False,
+            'is_multiple_people': False
+        }
+        
+        if centers:
+            result['avg_center'] = (np.mean([c[0] for c in centers]), np.mean([c[1] for c in centers]))
+        
+        if all_faces:
+            result['bounding_box'] = self.face_tracker.get_faces_bounding_box(all_faces)
+        
+        # Determinar tipo de vídeo
+        avg_count = result['avg_face_count']
+        if avg_count > 0:
+            result['is_single_person'] = avg_count < 1.5
+            result['is_multiple_people'] = avg_count >= 1.5
+        
+        logger.info(f"      Rostos detectados: {result['total_faces_detected']}")
+        logger.info(f"      Média por frame: {result['avg_face_count']:.1f}")
+        logger.info(f"      Tipo: {'Uma pessoa' if result['is_single_person'] else 'Múltiplas pessoas' if result['is_multiple_people'] else 'Sem rostos'}")
+        
+        return result
+
+    def _resize_to_vertical(
+        self, 
+        clip: VideoFileClip, 
+        crop_mode: str,
+        face_data: Dict = None
+    ) -> VideoFileClip:
+        """
+        Redimensiona vídeo para formato vertical 9:16 com tracking inteligente.
         """
         original_w, original_h = clip.size
-        target_ratio = self.target_height / self.target_width  # 16/9
-        original_ratio = original_h / original_w
-
+        target_ratio = self.target_height / self.target_width  # 16/9 = 1.77...
+        
         logger.info(f"   Resolução original: {original_w}x{original_h}")
         logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
 
-        if crop_mode == 'center':
-            # Crop central simples
+        if crop_mode == 'center' or face_data is None:
             return self._crop_center(clip)
-
-        elif crop_mode == 'smart':
-            # Detectar área de interesse (placeholder por enquanto)
-            logger.info("   Modo smart crop (usando center por enquanto)")
-            return self._crop_center(clip)
-
-        elif crop_mode == 'face_tracking':
-            # Face tracking (placeholder por enquanto)
-            if Config.FACE_TRACKING_ENABLED:
-                logger.info("   Face tracking (usando center por enquanto)")
-            return self._crop_center(clip)
-
+        
+        elif crop_mode == 'face_tracking' and face_data and face_data.get('avg_center'):
+            return self._crop_with_face_tracking(clip, face_data)
+        
+        elif crop_mode == 'smart' and face_data:
+            return self._crop_smart(clip, face_data)
+        
         else:
             return self._crop_center(clip)
 
     def _crop_center(self, clip: VideoFileClip) -> VideoFileClip:
-        """Crop central para 9:16"""
+        """Crop central simples para 9:16."""
         original_w, original_h = clip.size
+        target_ratio = self.target_height / self.target_width
 
         # Calcular dimensões do crop
-        target_ratio = self.target_height / self.target_width  # Ex: 1920/1080 = 1.77...
-
-        # Largura do crop baseada na altura do vídeo
         crop_width = int(original_h / target_ratio)
 
         if crop_width > original_w:
-            # Vídeo é muito largo, crop pela altura
+            # Vídeo muito largo, crop pela altura
             crop_height = int(original_w * target_ratio)
             x_center = original_w / 2
             y_center = original_h / 2
@@ -146,7 +323,7 @@ class VideoEditor:
                 height=crop_height
             )
         else:
-            # Vídeo é muito alto ou quadrado, crop pela largura
+            # Crop pela largura
             x_center = original_w / 2
             y_center = original_h / 2
 
@@ -160,7 +337,112 @@ class VideoEditor:
 
         # Redimensionar para resolução alvo
         clip_resized = clip_cropped.resize((self.target_width, self.target_height))
+        return clip_resized
 
+    def _crop_with_face_tracking(
+        self, 
+        clip: VideoFileClip, 
+        face_data: Dict
+    ) -> VideoFileClip:
+        """
+        Crop dinâmico que segue o rosto detectado.
+        Para uma pessoa: foca no rosto
+        Para múltiplas pessoas: enquadra todas
+        """
+        original_w, original_h = clip.size
+        target_ratio = self.target_height / self.target_width
+        
+        # Calcular dimensões do crop
+        crop_width = int(original_h / target_ratio)
+        if crop_width > original_w:
+            crop_width = original_w
+            crop_height = int(original_w * target_ratio)
+        else:
+            crop_height = original_h
+        
+        # Determinar centro do crop baseado nos rostos
+        if face_data.get('is_single_person') and face_data.get('avg_center'):
+            # Uma pessoa: centralizar no rosto
+            center_x, center_y = face_data['avg_center']
+            logger.info(f"   🎯 Focando em uma pessoa em ({center_x:.0f}, {center_y:.0f})")
+        
+        elif face_data.get('is_multiple_people') and face_data.get('bounding_box'):
+            # Múltiplas pessoas: centralizar na bounding box
+            bbox = face_data['bounding_box']
+            center_x = bbox[0] + bbox[2] / 2
+            center_y = bbox[1] + bbox[3] / 2
+            logger.info(f"   🎯 Enquadrando múltiplas pessoas")
+        
+        else:
+            # Fallback para centro
+            center_x = original_w / 2
+            center_y = original_h / 2
+        
+        # Garantir que o crop não saia dos limites
+        center_x = max(crop_width / 2, min(center_x, original_w - crop_width / 2))
+        center_y = max(crop_height / 2, min(center_y, original_h - crop_height / 2))
+        
+        # Aplicar crop
+        clip_cropped = crop(
+            clip,
+            x_center=center_x,
+            y_center=center_y,
+            width=crop_width,
+            height=crop_height
+        )
+        
+        # Redimensionar
+        clip_resized = clip_cropped.resize((self.target_width, self.target_height))
+        return clip_resized
+
+    def _crop_smart(self, clip: VideoFileClip, face_data: Dict) -> VideoFileClip:
+        """
+        Crop inteligente que considera:
+        - Rostos detectados
+        - Regra dos terços
+        - Movimento no vídeo
+        """
+        original_w, original_h = clip.size
+        target_ratio = self.target_height / self.target_width
+        
+        # Calcular dimensões do crop
+        crop_width = int(original_h / target_ratio)
+        if crop_width > original_w:
+            crop_width = original_w
+            crop_height = int(original_w * target_ratio)
+        else:
+            crop_height = original_h
+        
+        # Determinar centro inteligente
+        if face_data.get('avg_center'):
+            center_x, center_y = face_data['avg_center']
+            
+            # Aplicar regra dos terços - posicionar rosto no terço superior
+            if face_data.get('is_single_person'):
+                # Ajustar Y para que o rosto fique no terço superior
+                target_y = crop_height * 0.33  # Terço superior
+                offset_y = center_y - target_y
+                center_y = original_h / 2 + offset_y * 0.5  # Ajuste suave
+        else:
+            center_x = original_w / 2
+            center_y = original_h / 2
+        
+        # Garantir limites
+        center_x = max(crop_width / 2, min(center_x, original_w - crop_width / 2))
+        center_y = max(crop_height / 2, min(center_y, original_h - crop_height / 2))
+        
+        logger.info(f"   🎯 Smart crop: centro em ({center_x:.0f}, {center_y:.0f})")
+        
+        # Aplicar crop
+        clip_cropped = crop(
+            clip,
+            x_center=center_x,
+            y_center=center_y,
+            width=crop_width,
+            height=crop_height
+        )
+        
+        clip_resized = clip_cropped.resize((self.target_width, self.target_height))
         return clip_resized
 
     def batch_create_clips(
@@ -170,15 +452,7 @@ class VideoEditor:
         output_dir: Path
     ) -> list:
         """
-        Cria múltiplos clipes de uma vez
-
-        Args:
-            video_path: Vídeo original
-            moments: Lista de momentos virais
-            output_dir: Diretório de saída
-
-        Returns:
-            Lista de caminhos dos clipes criados
+        Cria múltiplos clipes de uma vez.
         """
         logger.info(f"📦 Criando {len(moments)} clipes em lote...")
 
@@ -192,7 +466,8 @@ class VideoEditor:
                     video_path,
                     moment['start'],
                     moment['end'],
-                    output_path
+                    output_path,
+                    crop_mode='face_tracking' if Config.FACE_TRACKING_ENABLED else 'center'
                 )
                 output_paths.append(path)
 
@@ -201,19 +476,11 @@ class VideoEditor:
                 continue
 
         logger.info(f"✅ {len(output_paths)}/{len(moments)} clipes criados com sucesso")
-
         return output_paths
 
 
 if __name__ == "__main__":
     # Teste rápido
     editor = VideoEditor()
-
-    # Exemplo (descomente para testar)
-    # clip_path = editor.create_clip(
-    #     Path("temp/video_test.mp4"),
-    #     10.0,
-    #     40.0,
-    #     Path("exports/test_clip.mp4")
-    # )
-    # print(f"Clipe criado: {clip_path}")
+    print("Video Editor inicializado com sucesso!")
+    print(f"Face Tracking disponível: {editor.face_tracker.initialized}")

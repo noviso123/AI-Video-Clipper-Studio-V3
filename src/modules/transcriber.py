@@ -151,12 +151,9 @@ class AudioTranscriber:
         """
         logger.info(f"💾 Exportando JSON: {output_path.name}")
 
+        # Salvar apenas a lista de segmentos para compatibilidade com main.py
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump({
-                'model': self.model_name,
-                'language': self.language,
-                'segments': segments
-            }, f, ensure_ascii=False, indent=2)
+            json.dump(segments, f, ensure_ascii=False, indent=2)
 
         logger.info(f"✅ JSON exportado com sucesso!")
 
