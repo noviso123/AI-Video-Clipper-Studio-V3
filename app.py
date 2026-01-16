@@ -14,7 +14,15 @@ app = Flask(__name__)
 CORS(app)
 
 # Config
-PYTHON_EXE = os.path.join(os.getcwd(), 'venv', 'Scripts', 'python.exe')
+# Detectar executável Python de forma compatível
+if sys.platform == "win32":
+    PYTHON_EXE = os.path.join(os.getcwd(), 'venv', 'Scripts', 'python.exe')
+    if not os.path.exists(PYTHON_EXE):
+        PYTHON_EXE = sys.executable # Fallback para o python atual
+else:
+    PYTHON_EXE = os.path.join(os.getcwd(), 'venv', 'bin', 'python')
+    if not os.path.exists(PYTHON_EXE):
+        PYTHON_EXE = sys.executable
 SCRIPT_PATH = os.path.join(os.getcwd(), 'main.py')
 
 # Global State

@@ -7,7 +7,7 @@ import os
 from threading import Lock
 from pathlib import Path
 
-STATE_FILE = "state.json"
+STATE_FILE = os.path.join(os.getcwd(), "state.json")
 lock = Lock()
 
 class StateManager:

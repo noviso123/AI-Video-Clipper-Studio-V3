@@ -103,12 +103,13 @@ Exemplos de uso:
 
         elif args.file:
             # Modo Arquivo Local
-            local_path = Path(args.file)
+            # Usar resolve() para garantir caminho absoluto correto no Windows
+            local_path = Path(args.file).resolve()
             if not local_path.exists():
                 logger.error(f"❌ Arquivo não encontrado: {local_path}")
                 sys.exit(1)
 
-            logger.info(f"📂 Processando arquivo local: {local_path.name}")
+            logger.info(f"📂 Processando arquivo local: {local_path}")
 
             # Preparar diretório temporário para extrair audio
             Config.ensure_directories()

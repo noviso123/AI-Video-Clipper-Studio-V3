@@ -2,8 +2,17 @@
 
 ## 🚀 Uso Básico
 
-### Comando Simples
+### Comando Simples (Linux/macOS)
 ```bash
+python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
+```
+
+### Comando Simples (Windows)
+```powershell
+# Usando o Orquestrador Automático (Recomendado)
+.\run_windows.ps1
+
+# Ou via comando direto
 python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
 ```
 
