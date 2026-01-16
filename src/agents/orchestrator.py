@@ -31,36 +31,34 @@ class OrchestratorAgent:
 
     def plan_video(self, transcription_text: str, duration: float, user_preferences: Optional[Dict] = None) -> Dict[str, Any]:
         """
-        Gera um plano de edição completo baseado no conteúdo.
+        Gera um plano de edição completo baseado no conteúdo usando abordagem Híbrida.
         """
-        logger.info("🧠 Orquestrador: Analisando conteúdo para gerar plano de edição...")
+        from ..core.hybrid_ai import HybridAI
+        hybrid = HybridAI()
 
-        # Fallback se não tiver API
-        if not self.client:
-            return self._get_fallback_plan()
+        return hybrid.call(
+            local_func=self._get_fallback_plan,
+            openai_func=lambda: self._call_openai_plan(transcription_text, duration, user_preferences) if self.client else None,
+            task_name="Editing Plan"
+        )
 
-        prompt = self._build_prompt(transcription_text, duration, user_preferences)
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Ou gpt-3.5-turbo para economia
-                messages=[
-                    {"role": "system", "content": "You are a professional Video Editor Director. Output ONLY JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.7
-            )
-
-            content = response.choices[0].message.content
-            plan = json.loads(content)
-
-            logger.info(f"🧠 Plano gerado: Vibe={plan.get('video_vibe')} | Style={plan.get('editing_style')}")
-            return plan
-
-        except Exception as e:
-            logger.error(f"❌ Erro na análise do Orquestrador: {e}")
-            return self._get_fallback_plan()
+    def _call_openai_plan(self, text: str, duration: float, prefs: Optional[Dict]) -> Dict[str, Any]:
+        """Chamada real para OpenAI"""
+        logger.info("🧠 Orquestrador: Analisando conteúdo para gerar plano de edição via OpenAI...")
+        prompt = self._build_prompt(text, duration, prefs)
+        response = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional Video Editor Director. Output ONLY JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7
+        )
+        content = response.choices[0].message.content
+        plan = json.loads(content)
+        logger.info(f"🧠 Plano gerado via OpenAI: Vibe={plan.get('video_vibe')} | Style={plan.get('editing_style')}")
+        return plan
 
     def _build_prompt(self, text: str, duration: float, prefs: Optional[Dict]) -> str:
         """Cria o prompt para a IA"""

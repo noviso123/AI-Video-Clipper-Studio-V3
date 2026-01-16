@@ -92,24 +92,16 @@ class CopywriterAgent:
 
     def generate_hooks(self, text: str, num_variations: int = 3) -> List[Dict]:
         """
-        Gera múltiplas variações de hooks
-
-        Args:
-            text: Texto original do clipe
-            num_variations: Número de variações a gerar
-
-        Returns:
-            Lista de hooks com score de viralidade
+        Gera múltiplas variações de hooks usando abordagem Híbrida.
         """
-        # Tentar usar Gemini primeiro
-        if self.gemini_client:
-            try:
-                return self._generate_hooks_gemini(text, num_variations)
-            except Exception as e:
-                logger.warning(f"Gemini falhou: {e}. Usando fallback.")
+        from ..core.hybrid_ai import HybridAI
+        hybrid = HybridAI()
 
-        # Fallback para templates locais
-        return self._generate_hooks_local(text, num_variations)
+        return hybrid.call(
+            local_func=lambda: self._generate_hooks_local(text, num_variations),
+            gemini_func=lambda: self._generate_hooks_gemini(text, num_variations) if self.gemini_client else None,
+            task_name="Hook Generation"
+        )
 
     def _generate_hooks_gemini(self, text: str, num_variations: int) -> List[Dict]:
         """Gera hooks usando Gemini AI"""

@@ -1,92 +1,214 @@
 """
 Módulo de Análise Viral (Stage 3)
-Identifica momentos virais usando análise de texto local
+Usa Gemini AI para análise inteligente de momentos virais
 """
 from typing import List, Dict, Optional
 from pathlib import Path
 import re
-from collections import Counter
+import os
+import json
 from ..core.config import Config
 from ..core.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# Tentar importar Gemini
+GEMINI_AVAILABLE = False
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    logger.warning("google-generativeai não instalado.")
+
 
 class ViralAnalyzer:
-    """Analisa transcrição e emoções para identificar momentos virais"""
+    """Analisa transcrição usando Gemini AI para identificar momentos virais"""
 
     def __init__(self):
-        # Palavras-chave virais (triggers emocionais)
+        self.gemini_client = None
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if GEMINI_AVAILABLE and api_key:
+            try:
+                genai.configure(api_key=api_key)
+                self.gemini_client = genai.GenerativeModel('gemini-1.5-flash')
+                logger.info("🔍 Analisador Viral: ONLINE (Gemini 1.5 Flash)")
+            except Exception as e:
+                logger.warning(f"⚠️ Erro ao conectar Gemini: {e}")
+        else:
+            logger.info("🔍 Analisador Viral: Modo Offline (Keywords Locais)")
+
+        # Palavras-chave virais (fallback)
         self.viral_keywords = {
-            'dinheiro': ['dinheiro', 'real', 'reais', 'mil', 'milhão', 'rico', 'renda', 'ganhar', 'lucro'],
-            'segredo': ['segredo', 'verdade', 'ninguém', 'escondido', 'revelar'],
-            'urgência': ['agora', 'hoje', 'rápido', 'urgente', 'última chance'],
-            'polêmica': ['polêmica', 'controverso', 'chocante', 'absurdo', 'inacreditável'],
-            'sucesso': ['sucesso', 'vitória', 'conquista', 'resultado', 'transformação'],
-            'erro': ['erro', 'errado', 'falha', 'problema', 'armadilha'],
-            'emoção': ['amor', 'medo', 'raiva', 'feliz', 'triste', 'chorar']
+            'dinheiro': ['dinheiro', 'real', 'reais', 'mil', 'milhão', 'rico', 'renda', 'ganhar', 'lucro', 'faturar'],
+            'segredo': ['segredo', 'verdade', 'ninguém', 'escondido', 'revelar', 'descobri'],
+            'urgência': ['agora', 'hoje', 'rápido', 'urgente', 'última chance', 'corre'],
+            'polêmica': ['polêmica', 'controverso', 'chocante', 'absurdo', 'inacreditável', 'mentira'],
+            'sucesso': ['sucesso', 'vitória', 'conquista', 'resultado', 'transformação', 'mudou'],
+            'erro': ['erro', 'errado', 'falha', 'problema', 'armadilha', 'cuidado'],
+            'emoção': ['amor', 'medo', 'raiva', 'feliz', 'triste', 'chorar', 'incrível']
         }
 
     def analyze_transcript(
         self,
         segments: List[Dict],
-        emotion_peaks: Optional[List[Dict]] = None
+        emotion_peaks: Optional[List[Dict]] = None,
+        min_duration: int = 30,
+        max_duration: int = 60
     ) -> List[Dict]:
         """
-        Analisa transcrição e identifica momentos virais
-
-        Args:
-            segments: Lista de segmentos da transcrição
-            emotion_peaks: Lista opcional de picos emocionais do áudio
-
-        Returns:
-            Lista de momentos virais ordenados por score:
-            [
-                {
-                    'start': 125.0,
-                    'end': 155.0,
-                    'score': 9.5,
-                    'hook': 'O segredo para ganhar R$ 10mil/mês',
-                    'reason': 'Promessa forte + número específico',
-                    'keywords': ['dinheiro', 'segredo'],
-                    'emotion_intensity': 0.8
-                },
-                ...
-            ]
+        Analisa transcrição e identifica momentos virais usando abordagem Híbrida.
         """
-        logger.info("🔍 Analisando potencial viral da transcrição...")
+        from ..core.hybrid_ai import HybridAI
+        hybrid = HybridAI()
+
+        return hybrid.call(
+            local_func=lambda: self._analyze_locally(segments, emotion_peaks, min_duration, max_duration),
+            gemini_func=lambda: self._analyze_with_gemini(segments, emotion_peaks, min_duration, max_duration) if self.gemini_client else None,
+            task_name="Viral Analysis"
+        )
+
+    def _analyze_with_gemini(
+        self,
+        segments: List[Dict],
+        emotion_peaks: Optional[List[Dict]] = None,
+        min_duration: int = 30,
+        max_duration: int = 60
+    ) -> List[Dict]:
+        """Análise usando Gemini AI"""
+        logger.info("   🧠 Usando Gemini AI para análise profunda...")
+
+        # Preparar texto completo com timestamps
+        full_text = ""
+        for seg in segments:
+            full_text += f"[{seg['start']:.1f}s - {seg['end']:.1f}s]: {seg['text']}\n"
+
+        # Limitar tamanho
+        if len(full_text) > 10000:
+            full_text = full_text[:10000] + "\n... (texto truncado)"
+
+        prompt = f"""
+Você é um especialista em conteúdo viral para TikTok, Reels e Shorts.
+
+Analise esta transcrição de vídeo e identifique os 5 MELHORES momentos para criar clips virais curtos ({min_duration}-{max_duration} segundos).
+
+TRANSCRIÇÃO COM TIMESTAMPS:
+{full_text}
+
+CRITÉRIOS DE VIRALIDADE (em ordem de importância):
+1. HOOK FORTE - Primeiros 3 segundos capturam atenção imediatamente
+2. EMOÇÃO - Momentos que causam reação emocional (surpresa, riso, motivação)
+3. VALOR - Conteúdo que ensina algo útil ou revela segredo
+4. CONTROVERSO - Opiniões fortes ou afirmações polêmicas
+5. NÚMEROS - Dados específicos que impressionam
+6. HISTÓRIA - Mini-narrativas com início, meio e fim
+
+RESPONDA EM JSON (SOMENTE JSON, sem markdown):
+{{
+    "viral_moments": [
+        {{
+            "start": 125.0,
+            "end": 170.0,
+            "score": 9.5,
+            "hook": "A frase de abertura mais impactante para o clip",
+            "reason": "Por que esse momento é viral",
+            "keywords": ["keyword1", "keyword2"],
+            "emotion": "qual emoção principal",
+            "viral_potential": "alto/médio/baixo",
+            "suggested_title": "Título viral para o clip"
+        }}
+    ],
+    "overall_analysis": {{
+        "main_topic": "tema principal do vídeo",
+        "target_audience": "para quem é esse conteúdo",
+        "best_platform": "TikTok/Reels/Shorts",
+        "content_quality": 0-10
+    }}
+}}
+"""
+
+        response = self.gemini_client.generate_content(prompt)
+        text = response.text
+
+        # Limpar resposta (remover markdown se presente)
+        text = text.strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        if text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning("Resposta do Gemini não é JSON válido, usando fallback")
+            return self._analyze_locally(segments, emotion_peaks)
+
+        # Processar momentos
+        viral_moments = []
+        for moment in data.get('viral_moments', []):
+            viral_moments.append({
+                'start': moment.get('start', 0),
+                'end': moment.get('end', 0),
+                'score': moment.get('score', 5.0),
+                'hook': moment.get('hook', ''),
+                'reason': moment.get('reason', ''),
+                'keywords': moment.get('keywords', []),
+                'emotion_intensity': 0.8 if moment.get('viral_potential') == 'alto' else 0.5,
+                'text_preview': moment.get('suggested_title', ''),
+                'gemini_analysis': True
+            })
+
+        # Ordenar por score
+        viral_moments.sort(key=lambda x: x['score'], reverse=True)
+
+        logger.info(f"✅ Gemini identificou {len(viral_moments)} momentos virais")
+
+        # Log análise geral
+        overall = data.get('overall_analysis', {})
+        if overall:
+            logger.info(f"   Tema: {overall.get('main_topic', 'N/A')}")
+            logger.info(f"   Qualidade: {overall.get('content_quality', 'N/A')}/10")
+
+        return viral_moments
+
+    def _analyze_locally(
+        self,
+        segments: List[Dict],
+        emotion_peaks: Optional[List[Dict]] = None,
+        min_duration: int = 30,
+        max_duration: int = 60
+    ) -> List[Dict]:
+        """Análise usando keywords locais (fallback)"""
+        logger.info(f"   📝 Usando análise local (duração: {min_duration}-{max_duration}s)...")
 
         viral_moments = []
+        clip_min = min_duration
+        clip_max = max_duration
 
-        # Analisar cada segmento possível de 30-60 segundos
-        clip_min = Config.CLIP_DURATION_MIN
-        clip_max = Config.CLIP_DURATION_MAX
+        # Gerar lista de durações para testar (ex: min, média, max)
+        durations = sorted(list(set([min_duration, (min_duration + max_duration) // 2, max_duration])))
 
         for i, segment in enumerate(segments):
             start_time = segment['start']
 
-            # Tentar diferentes durações
-            for duration in [30, 45, 60]:
+            for duration in durations:
                 if duration < clip_min or duration > clip_max:
                     continue
 
                 end_time = start_time + duration
-
-                # Coletar texto neste intervalo
                 clip_text = self._get_text_in_range(segments, start_time, end_time)
 
                 if not clip_text:
                     continue
 
-                # Calcular score viral
                 score_data = self._calculate_viral_score(
-                    clip_text,
-                    start_time,
-                    end_time,
-                    emotion_peaks
+                    clip_text, start_time, end_time, emotion_peaks
                 )
 
-                if score_data['score'] >= 6.0:  # Threshold mínimo
+                if score_data['score'] >= 6.0:
                     viral_moments.append({
                         'start': start_time,
                         'end': end_time,
@@ -95,16 +217,14 @@ class ViralAnalyzer:
                         'reason': score_data['reason'],
                         'keywords': score_data['keywords'],
                         'emotion_intensity': score_data['emotion_intensity'],
-                        'text_preview': clip_text[:100] + '...'
+                        'text_preview': clip_text[:100] + '...',
+                        'gemini_analysis': False
                     })
 
-        # Ordenar por score (melhor primeiro)
         viral_moments.sort(key=lambda x: x['score'], reverse=True)
-
-        # Remover sobreposições (manter apenas o melhor em cada região)
         viral_moments = self._remove_overlaps(viral_moments)
 
-        logger.info(f"✅ {len(viral_moments)} momentos virais identificados")
+        logger.info(f"✅ {len(viral_moments)} momentos virais identificados (local)")
 
         return viral_moments
 
@@ -115,9 +235,7 @@ class ViralAnalyzer:
             if seg['start'] >= start and seg['end'] <= end:
                 texts.append(seg['text'])
             elif seg['start'] < end and seg['end'] > start:
-                # Sobreposição parcial
                 texts.append(seg['text'])
-
         return ' '.join(texts)
 
     def _calculate_viral_score(
@@ -127,93 +245,70 @@ class ViralAnalyzer:
         end: float,
         emotion_peaks: Optional[List[Dict]] = None
     ) -> Dict:
-        """
-        Calcula score viral de um trecho
-
-        Returns:
-            {
-                'score': float,
-                'reason': str,
-                'keywords': List[str],
-                'emotion_intensity': float
-            }
-        """
-        score = 5.0  # Base score
+        """Calcula score viral de um trecho"""
+        score = 5.0
         reasons = []
         found_keywords = []
-
         text_lower = text.lower()
 
-        # 1. Análise de palavras-chave (+3 pontos máximo)
+        # Análise de palavras-chave
         keyword_score = 0
         for category, keywords in self.viral_keywords.items():
             for keyword in keywords:
                 if keyword in text_lower:
                     keyword_score += 0.5
                     found_keywords.append(keyword)
-                    if keyword_score == 0.5:  # Primeira vez
-                        reasons.append(f"Contém palavra viral: {category}")
+                    if keyword_score == 0.5:
+                        reasons.append(f"Palavra viral: {category}")
 
         score += min(keyword_score, 3.0)
 
-        # 2. Análise de números (+1 ponto)
+        # Números
         numbers = re.findall(r'\d+(?:\.\d+)?', text)
         if numbers:
             score += 1.0
-            reasons.append("Contém números específicos")
+            reasons.append("Números específicos")
 
-        # 3. Análise de perguntas (+0.5 pontos)
+        # Perguntas
         if '?' in text or any(word in text_lower for word in ['como', 'por que', 'qual']):
             score += 0.5
-            reasons.append("Contém pergunta")
+            reasons.append("Pergunta")
 
-        # 4. Análise de emoção do áudio (+2 pontos máximo)
+        # Emoção do áudio
         emotion_intensity = 0.0
         if emotion_peaks:
-            # Verificar se há picos emocionais neste intervalo
-            peaks_in_range = [
-                p for p in emotion_peaks
-                if start <= p['timestamp'] <= end
-            ]
-
+            peaks_in_range = [p for p in emotion_peaks if start <= p['timestamp'] <= end]
             if peaks_in_range:
                 emotion_intensity = sum(p['intensity'] for p in peaks_in_range) / len(peaks_in_range)
                 score += emotion_intensity * 2.0
-                reasons.append(f"Picos emocionais detectados ({len(peaks_in_range)})")
+                reasons.append(f"Picos emocionais ({len(peaks_in_range)})")
 
-        # 5. Análise de início forte (+1 ponto)
+        # Início forte
         first_words = text_lower.split()[:5]
-        strong_starts = ['olha', 'cuidado', 'atenção', 'nunca', 'sempre', 'todo', 'ninguém']
+        strong_starts = ['olha', 'cuidado', 'atenção', 'nunca', 'sempre', 'todo', 'ninguém', 'para']
         if any(word in first_words for word in strong_starts):
             score += 1.0
             reasons.append("Início forte")
 
-        # Limitar score máximo a 10
-        score = min(score, 10.0)
-
         return {
-            'score': round(score, 1),
+            'score': round(min(score, 10.0), 1),
             'reason': ' | '.join(reasons) if reasons else 'Análise padrão',
             'keywords': list(set(found_keywords)),
             'emotion_intensity': emotion_intensity
         }
 
     def _generate_hook(self, text: str) -> str:
-        """Gera um hook (título) viral para o clipe"""
-        # Pegar primeira frase ou primeiras 60 caracteres
+        """Gera um hook viral para o clipe"""
         sentences = text.split('.')
         first_sentence = sentences[0].strip()
 
         if len(first_sentence) > 60:
-            # Truncar e adicionar reticências
             hook = first_sentence[:57] + '...'
         else:
             hook = first_sentence
 
-        # Capitalizar
         hook = hook.capitalize()
 
-        # Adicionar emoji se contiver palavras-chave
         text_lower = text.lower()
         if any(word in text_lower for word in ['dinheiro', 'rico', 'mil']):
             hook = '💰 ' + hook
@@ -221,46 +316,20 @@ class ViralAnalyzer:
             hook = '🔥 ' + hook
         elif any(word in text_lower for word in ['cuidado', 'erro', 'armadilha']):
             hook = '⚠️ ' + hook
+        elif any(word in text_lower for word in ['incrível', 'chocante']):
+            hook = '😱 ' + hook
 
         return hook
 
     def _remove_overlaps(self, moments: List[Dict], min_gap: float = 10.0) -> List[Dict]:
-        """
-        Remove momentos sobrepostos, mantendo apenas o de maior score
-
-        Args:
-            moments: Lista de momentos virais
-            min_gap: Gap mínimo entre momentos (segundos)
-        """
+        """Remove momentos sobrepostos"""
         if not moments:
             return []
 
         filtered = [moments[0]]
-
         for moment in moments[1:]:
-            # Verificar se sobrepõe com o último adicionado
             last = filtered[-1]
-
             if moment['start'] >= last['end'] + min_gap:
-                # Não sobrepõe, adicionar
                 filtered.append(moment)
-            # Se sobrepõe, não adiciona (pois moments está ordenado por score)
 
         return filtered
-
-
-if __name__ == "__main__":
-    # Teste rápido
-    analyzer = ViralAnalyzer()
-
-    # Exemplo de segmentos
-    test_segments = [
-        {'start': 0.0, 'end': 5.0, 'text': 'O segredo para ganhar dinheiro rápido'},
-        {'start': 5.0, 'end': 10.0, 'text': 'que ninguém te conta é este aqui'},
-        {'start': 10.0, 'end': 15.0, 'text': 'você precisa investir mil reais'},
-    ]
-
-    moments = analyzer.analyze_transcript(test_segments)
-    print(f"Momentos virais: {len(moments)}")
-    if moments:
-        print(f"Melhor score: {moments[0]['score']}")

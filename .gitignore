@@ -55,3 +55,9 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime State
+state.json
+
+# Test Exports
+exports_v3/

@@ -4,599 +4,784 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Video Clipper V3 (Professional)</title>
-        <!-- Tailwind CSS (via CDN for speed/simplicity as requested) -->
+        <title>AI Video Clipper Studio V3</title>
+        <meta name="description" content="Transforme vídeos longos em clips virais automaticamente com IA">
         <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
             rel="stylesheet">
         <style>
-            body {
+            * {
                 font-family: 'Inter', sans-serif;
-                background-color: #0f172a;
-                color: #f8fafc;
             }
 
-            .glass-panel {
-                background: rgba(30, 41, 59, 0.7);
-                backdrop-filter: blur(10px);
+            body {
+                background: linear-gradient(135deg, #0a0a1a 0%, #1a1030 50%, #0a0a1a 100%);
+                background-attachment: fixed;
+                min-height: 100vh;
+            }
+
+            .glass {
+                background: rgba(20, 20, 40, 0.7);
+                backdrop-filter: blur(20px);
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
 
             .gradient-text {
-                background: linear-gradient(to right, #60a5fa, #a855f7);
+                background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }
 
-            /* CustomScrollbar */
-            ::-webkit-scrollbar {
-                width: 8px;
+            .btn-primary {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                transition: all 0.3s ease;
             }
 
-            ::-webkit-scrollbar-track {
-                background: #0f172a;
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
             }
 
-            ::-webkit-scrollbar-thumb {
-                background: #334155;
-                border-radius: 4px;
+            .btn-danger {
+                background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
             }
 
-            ::-webkit-scrollbar-thumb:hover {
-                background: #475569;
+            .terminal {
+                background: #0d0d0d;
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             }
 
-            .step-active {
-                border-color: #3b82f6;
-                color: #60a5fa;
+            .scroll::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
             }
 
-            .step-inactive {
-                border-color: #334155;
-                color: #64748b;
+            .scroll::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.3);
             }
 
-            /* Viral Score Badge Colors */
+            .scroll::-webkit-scrollbar-thumb {
+                background: #4f46e5;
+                border-radius: 3px;
+            }
+
+            .clip-card {
+                transition: all 0.3s ease;
+            }
+
+            .clip-card:hover {
+                transform: translateY(-3px);
+                background: rgba(30, 30, 60, 0.9);
+            }
+
+            .online {
+                color: #10b981;
+            }
+
+            .offline {
+                color: #ef4444;
+            }
+
+            .processing {
+                color: #f59e0b;
+                animation: pulse 1s infinite;
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .spin {
+                animation: spin 1s linear infinite;
+            }
+
             .score-high {
-                background-color: #059669;
-                color: #d1fae5;
+                background: linear-gradient(135deg, #059669, #10b981);
             }
 
-            .score-med {
-                background-color: #d97706;
-                color: #fef3c7;
+            .score-mid {
+                background: linear-gradient(135deg, #d97706, #f59e0b);
             }
 
             .score-low {
-                background-color: #b91c1c;
-                color: #fee2e2;
+                background: linear-gradient(135deg, #dc2626, #f43f5e);
             }
         </style>
     </head>
 
-    <body class="min-h-screen flex flex-col">
+    <body class="text-white">
+        <div class="min-h-screen flex flex-col">
 
-        <!-- Header -->
-        <header class="border-b border-slate-700 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">🎬</span>
-                    <span class="text-xl font-bold tracking-tight">AI Video Clipper <span class="gradient-text">Studio
-                            V3</span></span>
-                </div>
-                <div class="flex items-center gap-4 text-sm text-slate-400">
-                    <span id="connection-status" class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-slate-500"></span> Offline
-                    </span>
-                </div>
-            </div>
-        </header>
-
-        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-
-            <!-- Hero / Input Section -->
-            <section id="input-section" class="mb-12 transition-all duration-500">
-                <div class="text-center mb-10">
-                    <h1 class="text-4xl md:text-5xl font-extrabold mb-4">Transforme vídeos longos em <span
-                            class="gradient-text">Virais</span></h1>
-                    <p class="text-slate-400 text-lg max-w-2xl mx-auto">
-                        A IA analisa, corta, legenda e edita automaticamente. Qualidade de estúdio em um clique.
-                    </p>
-                </div>
-
-                <div class="glass-panel rounded-2xl p-2 max-w-3xl mx-auto shadow-2xl">
-                    <div class="flex flex-col md:flex-row gap-2">
-                        <!-- Tabs -->
-                        <div class="flex bg-slate-800 rounded-xl p-1 shrink-0">
-                            <button onclick="setMode('url')" id="tab-url"
-                                class="px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all">YouTube</button>
-                            <button onclick="setMode('file')" id="tab-file"
-                                class="px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all">Arquivo</button>
+            <!-- HEADER -->
+            <header class="glass border-b border-white/10 sticky top-0 z-50">
+                <div class="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🎬</span>
+                        <span class="font-bold text-lg">AI Video Clipper <span
+                                class="gradient-text font-extrabold">V3</span></span>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <div id="api-status" class="flex gap-2 text-xs">
+                            <span id="api-gemini" class="px-2 py-1 rounded bg-slate-800/80">Gemini: --</span>
+                            <span id="api-openai" class="px-2 py-1 rounded bg-slate-800/80">OpenAI: --</span>
                         </div>
+                        <div id="server-status" class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span class="text-slate-400">Conectando...</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
-                        <!-- Input -->
-                        <div class="flex-grow relative">
-                            <input type="text" id="input-val"
-                                class="w-full h-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 text-white placeholder-slate-500 transition-all"
-                                placeholder="Cole a URL do YouTube aqui...">
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-                            <button id="browse-btn" onclick="browseFile()"
-                                class="hidden absolute right-2 top-2 bottom-2 bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-sm">
-                                📂 Procurar
+                <!-- LEFT: Input + Actions -->
+                <div class="lg:col-span-1 space-y-4">
+
+                    <!-- INPUT PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <h2 class="font-bold mb-3 flex items-center gap-2">
+                            <span class="text-xl">📹</span> Entrada
+                        </h2>
+
+                        <!-- Tabs -->
+                        <div class="flex bg-slate-900/80 rounded-lg p-1 mb-3">
+                            <button onclick="setMode('url')" id="tab-url"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all">
+                                📺 Clipping
+                            </button>
+                            <button onclick="setMode('autonomous')" id="tab-autonomous"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+                                🧠 Cérebro
+                            </button>
+                            <button onclick="setMode('file')" id="tab-file"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+                                📁 Arquivo
                             </button>
                         </div>
 
-                        <!-- Action Button -->
-                        <button id="run-btn" onclick="runClipper()"
-                            class="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold shadow-lg transform hover:-translate-y-0.5 transition-all shrink-0">
-                            Gerar Clips ✨
-                        </button>
-                    </div>
-                </div>
-            </section>
+                        <!-- Input Field -->
+                        <div class="relative mb-3">
+                            <input type="text" id="input-val"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm"
+                                placeholder="Cole a URL do YouTube..."
+                                onkeydown="if(event.key === 'Enter') startProcessing()">
+                            <button id="browse-btn" onclick="browseFile()"
+                                class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-medium">
+                                📂 Buscar
+                            </button>
+                        </div>
 
-            <!-- History Section (Shows last processing) -->
-            <section id="history-section" class="hidden mb-8 max-w-3xl mx-auto">
-                <div class="glass-panel rounded-xl p-4 border-l-4 border-yellow-500">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📁</span>
-                            <div>
-                                <p class="text-sm text-slate-400">Último Processamento</p>
-                                <p id="history-file" class="font-semibold text-white truncate max-w-xs">
-                                    videoplayback.mp4</p>
-                                <p id="history-status" class="text-xs text-yellow-400">⚠️ Interrompido no Stage 2.5</p>
+                        <!-- Settings -->
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Clips</label>
+                                <input type="number" id="input-clips" value="3" min="1" max="10"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Min (s)</label>
+                                <input type="number" id="input-min-dur" value="30" min="10" max="300"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Max (s)</label>
+                                <input type="number" id="input-max-dur" value="60" min="10" max="600"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
                             </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="continueProcessing()"
-                                class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-bold transition-all">
-                                ▶️ Continuar
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-2">
+                            <button id="start-btn" onclick="startProcessing()"
+                                class="w-full btn-primary py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
+                                <span>✨</span> <span id="start-btn-text">GERAR CLIPS</span>
                             </button>
-                            <button onclick="reprocessFromScratch()"
-                                class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-all">
-                                🔄 Recomeçar
+                            <button id="stop-btn" onclick="stopProcessing()"
+                                class="hidden w-full btn-danger py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
+                                <span>🛑</span> PARAR
                             </button>
                         </div>
-                    </div>
+
+                        <!-- Status -->
+                        <div class="mt-3 pt-3 border-t border-slate-700/50 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Status:</span>
+                                <span id="process-status" class="font-medium text-slate-300">Aguardando</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-slate-400">Etapa:</span>
+                                <span id="process-step" class="font-medium text-indigo-400">--</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- HISTORY PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">📋</span> Último Processamento
+                            </h2>
+                        </div>
+                        <div id="history-content" class="text-sm text-slate-400 italic">
+                            Nenhum vídeo processado ainda.
+                        </div>
+                    </section>
+
+                    <!-- ACTIONS PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <h2 class="font-bold mb-3 flex items-center gap-2">
+                            <span class="text-xl">⚡</span> Ações Rápidas
+                        </h2>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="refreshAll()"
+                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
+                                🔄 Atualizar
+                            </button>
+                            <button onclick="clearLogs()"
+                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
+                                📝 Limpar Logs
+                            </button>
+                            <button onclick="deleteAllClips()"
+                                class="text-xs bg-red-900/50 hover:bg-red-900 text-red-400 py-2 px-3 rounded-lg transition-all">
+                                🗑️ Limpar Clips
+                            </button>
+                            <button onclick="nukeAll()"
+                                class="text-xs bg-red-600 hover:bg-red-500 text-white py-2 px-3 rounded-lg transition-all font-bold">
+                                ☢️ APAGAR TUDO
+                            </button>
+                        </div>
+                    </section>
+
                 </div>
-            </section>
 
-            <!-- Progress Section (Hidden by default) -->
-
-            <section id="progress-section" class="hidden mb-12 max-w-3xl mx-auto">
-                <div class="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold flex items-center gap-2">
-                            <span class="animate-spin text-xl">⏳</span> Processando seu vídeo...
-                        </h3>
-                        <span id="status-text"
-                            class="text-sm text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">Iniciando</span>
-                    </div>
-
-                    <!-- Steps -->
-                    <div class="grid grid-cols-5 gap-2 mb-6 text-center text-xs font-semibold">
-                        <div class="step-item text-slate-500">📥 Download</div>
-                        <div class="step-item text-slate-500">🧠 Análise</div>
-                        <div class="step-item text-slate-500">✂️ Cortes</div>
-                        <div class="step-item text-slate-500">🎨 Polimento</div>
-                        <div class="step-item text-slate-500">🚀 Finalização</div>
-                    </div>
-
-                    <!-- Console Log Preview -->
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-semibold text-slate-500">TERMINAL DE SAÍDA</span>
-                        <button onclick="toggleLogs()" class="text-xs text-blue-400 hover:text-blue-300">Expandir /
-                            Contrair</button>
-                    </div>
-                    <div class="bg-black rounded-lg p-4 font-mono text-xs text-green-400 h-64 overflow-y-auto transition-all duration-300"
-                        id="logs-preview">
-                        Esperando logs...
-                    </div>
+                <!-- CENTER: Console -->
+                <div class="lg:col-span-1 flex flex-col">
+                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">💻</span> Console
+                            </h2>
+                            <span id="log-count" class="text-xs text-slate-500">0 linhas</span>
+                        </div>
+                        <div id="console"
+                            class="terminal rounded-lg p-3 flex-1 overflow-y-auto scroll text-xs text-green-400 min-h-[400px]">
+                            <div>$ Sistema inicializado. Aguardando entrada...</div>
+                        </div>
+                    </section>
                 </div>
-            </section>
 
-            <!-- Results Section (Hidden by default) -->
-            <section id="results-section" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Clips Gerados (V3)</h2>
-                    <button onclick="downloadAll()"
-                        class="text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-600">
-                        ⬇ Baixar Tudo
+                <!-- RIGHT: Clips -->
+                <div class="lg:col-span-1 flex flex-col">
+                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">🎬</span> Clips Gerados
+                            </h2>
+                            <span id="clips-count" class="text-xs text-slate-500">0 clips</span>
+                        </div>
+                        <div id="clips-list" class="flex-1 overflow-y-auto scroll space-y-2 min-h-[400px]">
+                            <div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>
+                        </div>
+                    </section>
+                </div>
+
+            </main>
+
+            <!-- FOOTER -->
+            <footer class="text-center py-4 text-xs text-slate-500">
+                AI Video Clipper Studio V3 • Local Mode
+            </footer>
+
+        </div>
+
+        <!-- VIDEO MODAL -->
+        <div id="modal" class="fixed inset-0 z-[100] hidden bg-black/95 flex items-center justify-center p-4">
+            <div class="glass rounded-xl overflow-hidden max-w-sm w-full">
+                <div class="flex justify-between items-center p-3 border-b border-white/10">
+                    <span id="modal-title" class="text-sm font-bold truncate">Preview</span>
+                    <button onclick="closeModal()" class="text-xl text-slate-400 hover:text-white">&times;</button>
+                </div>
+                <div class="aspect-[9/16] bg-black">
+                    <video id="modal-video" controls class="w-full h-full object-contain"></video>
+                </div>
+                <div class="p-3 flex gap-2">
+                    <a id="modal-download" href="#" download
+                        class="flex-1 btn-primary text-white text-center py-2 rounded-lg text-sm font-bold">
+                        ⬇️ Download
+                    </a>
+                    <button onclick="closeModal()"
+                        class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-medium">
+                        Fechar
                     </button>
                 </div>
-
-                <div id="clips-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Cards will be injected here JS -->
-                </div>
-            </section>
-
-            <!-- Video Player Modal -->
-            <div id="video-modal"
-                class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-                <div
-                    class="bg-slate-900 rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full shadow-2xl border border-slate-700 relative">
-                    <div class="flex justify-between items-center p-4 border-b border-slate-800">
-                        <h3 id="modal-title" class="text-sm font-bold text-white truncate pr-4">Preview</h3>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
-                    </div>
-                    <div class="aspect-[9/16] bg-black relative">
-                        <video id="modal-video" controls class="w-full h-full object-contain"></video>
-                    </div>
-                    <div class="p-4 grid grid-cols-2 gap-2">
-                        <a id="modal-download" href="#" download
-                            class="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold text-center">
-                            ⬇ Baixar MP4
-                        </a>
-                        <button onclick="closeModal()"
-                            class="bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg text-sm font-bold">
-                            Fechar
-                        </button>
-                    </div>
-                </div>
             </div>
+        </div>
 
-        </main>
-
-        <!-- JS Logic -->
         <script>
-            let currentMode = 'url';
+            // =====================
+            // STATE
+            // =====================
+            let mode = 'url';
+            let eventSource = null;
+            let isProcessing = false;
 
-            // --- State Management ---
-            async function loadState ()
+            // =====================
+            // INIT
+            // =====================
+            window.onload = async () =>
+            {
+                await loadHealth();
+                await loadStatus();
+                await loadClips();
+            };
+
+            async function loadHealth ()
             {
                 try
                 {
-                    const res = await fetch( '/status' );
-                    const state = await res.json();
-
-                    // Update Inputs
-                    if ( state.current_project )
-                    {
-                        setMode( state.current_project.mode );
-                        document.getElementById( 'input-val' ).value = state.current_project.input;
-                    }
-
-                    // Update Progress or Results
-                    if ( state.running || state.status === 'processing' )
-                    {
-                        showProgress();
-                        connectStream();
-                    } else if ( state.status === 'done' )
-                    {
-                        showResults();
-                        document.getElementById( 'logs-preview' ).innerText = state.logs.join( '\\n' );
-                    }
-
-                    // Mostrar histórico SEMPRE que houver um projeto anterior
-                    if ( state.current_project && !state.running && state.status !== 'processing' )
-                    {
-                        showHistory( state );
-                    }
-
-                    // Connection Status
-                    const statusDot = document.querySelector( '#connection-status span' );
-                    const statusText = document.querySelector( '#connection-status' );
-                    statusDot.classList.remove( 'bg-slate-500' );
-                    statusDot.classList.add( 'bg-green-500' );
-                    statusText.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Online';
-
-                } catch ( e )
-                {
-                    console.error( "Server offline", e );
-                }
-            }
-
-            // --- History Functions ---
-            function showHistory ( state )
-            {
-                const historySection = document.getElementById( 'history-section' );
-                const historyFile = document.getElementById( 'history-file' );
-                const historyStatus = document.getElementById( 'history-status' );
-
-                if ( state.current_project )
-                {
-                    const filename = state.current_project.input.split( '/' ).pop().split( '\\\\' ).pop();
-                    historyFile.textContent = filename;
-
-                    // Detectar último stage dos logs
-                    const logs = state.logs.join( ' ' );
-                    let lastStage = "Início";
-                    if ( logs.includes( "STAGE 4" ) ) lastStage = "Edição de Clips";
-                    else if ( logs.includes( "STAGE 3" ) ) lastStage = "Análise Viral";
-                    else if ( logs.includes( "STAGE 2.5" ) ) lastStage = "Orquestração (IA)";
-                    else if ( logs.includes( "STAGE 2" ) ) lastStage = "Transcrição";
-                    else if ( logs.includes( "STAGE 1" ) ) lastStage = "Download/Extração";
-
-                    if ( state.status === 'error' )
-                    {
-                        historyStatus.textContent = `❌ Erro no ${ lastStage }`;
-                        historyStatus.className = 'text-xs text-red-400';
-                    } else if ( state.status === 'done' )
-                    {
-                        historyStatus.textContent = `✅ Concluído com sucesso`;
-                        historyStatus.className = 'text-xs text-green-400';
-                    } else
-                    {
-                        historyStatus.textContent = `⏸️ Pausado no ${ lastStage }`;
-                        historyStatus.className = 'text-xs text-yellow-400';
-                    }
-
-                    historySection.classList.remove( 'hidden' );
-                }
-            }
-
-
-            async function continueProcessing ()
-            {
-                // Buscar último projeto e continuar
-                const res = await fetch( '/status' );
-                const state = await res.json();
-
-                if ( state.current_project )
-                {
-                    document.getElementById( 'input-val' ).value = state.current_project.input;
-                    setMode( state.current_project.mode );
-                    document.getElementById( 'history-section' ).classList.add( 'hidden' );
-                    runClipper(); // Vai usar checkpoints automaticamente
-                }
-            }
-
-            async function reprocessFromScratch ()
-            {
-                // Limpar cache e recomeçar
-                if ( confirm( 'Isso vai apagar todos os arquivos temporários e recomeçar do zero. Continuar?' ) )
-                {
-                    await fetch( '/clear-cache', { method: 'POST' } );
-
-                    const res = await fetch( '/status' );
-                    const state = await res.json();
-
-                    if ( state.current_project )
-                    {
-                        document.getElementById( 'input-val' ).value = state.current_project.input;
-                        setMode( state.current_project.mode );
-                    }
-
-                    document.getElementById( 'history-section' ).classList.add( 'hidden' );
-                    runClipper();
-                }
-            }
-
-
-            // --- UI Modes ---
-            function setMode ( mode )
-            {
-                currentMode = mode;
-                const btnUrl = document.getElementById( 'tab-url' );
-                const btnFile = document.getElementById( 'tab-file' );
-                const input = document.getElementById( 'input-val' );
-                const browseBtn = document.getElementById( 'browse-btn' );
-
-                if ( mode === 'url' )
-                {
-                    btnUrl.className = "px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all";
-                    btnFile.className = "px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all";
-                    input.placeholder = "Cole a URL do YouTube aqui...";
-                    browseBtn.classList.add( 'hidden' );
-                } else
-                {
-                    btnFile.className = "px-4 py-3 rounded-lg text-sm font-medium bg-blue-600 text-white shadow-sm transition-all";
-                    btnUrl.className = "px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all";
-                    input.placeholder = "Selecione um arquivo local...";
-                    browseBtn.classList.remove( 'hidden' );
-                }
-            }
-
-            // --- Actions ---
-            async function browseFile ()
-            {
-                const res = await fetch( '/browse' );
-                const data = await res.json();
-                if ( data.status === 'success' && data.path )
-                {
-                    document.getElementById( 'input-val' ).value = data.path;
-                }
-            }
-
-            async function runClipper ()
-            {
-                const input = document.getElementById( 'input-val' ).value;
-                if ( !input ) return alert( "Digite uma URL ou escolha um arquivo!" );
-
-                showProgress();
-
-                try
-                {
-                    const res = await fetch( '/run', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify( { mode: currentMode, input: input } )
-                    } );
+                    const res = await fetch( '/api/health' );
                     const data = await res.json();
-                    if ( data.status === 'error' )
+
+                    updateServerStatus( true );
+
+                    document.getElementById( 'api-gemini' ).innerHTML = `Gemini: ${ data.apis.gemini ? '<span class="online">✓</span>' : '<span class="offline">✗</span>' }`;
+                    document.getElementById( 'api-openai' ).innerHTML = `OpenAI: ${ data.apis.openai ? '<span class="online">✓</span>' : '<span class="offline">✗</span>' }`;
+                } catch ( e )
+                {
+                    updateServerStatus( false );
+                }
+            }
+
+            async function loadStatus ()
+            {
+                try
+                {
+                    const res = await fetch( '/status' );
+                    const state = await res.json();
+
+                    if ( state.current_project )
                     {
-                        alert( data.message );
-                        resetUI();
-                    } else
+                        updateHistory( state.current_project.input, state.status );
+                    }
+
+                    if ( state.logs && state.logs.length > 0 )
                     {
+                        const console = document.getElementById( 'console' );
+                        console.innerHTML = state.logs.map( l => `<div>${ sanitize( l ) }</div>` ).join( '' );
+                        console.scrollTop = console.scrollHeight;
+                        document.getElementById( 'log-count' ).textContent = `${ state.logs.length } linhas`;
+                    }
+
+                    if ( state.running )
+                    {
+                        showProcessingUI();
                         connectStream();
                     }
                 } catch ( e )
                 {
-                    alert( "Erro de conexão" );
-                    resetUI();
+                    console.error( 'Error loading status:', e );
                 }
             }
 
-            function toggleLogs ()
+            async function loadClips ()
             {
-                const logs = document.getElementById( 'logs-preview' );
-                if ( logs.classList.contains( 'h-64' ) )
-                {
-                    logs.classList.remove( 'h-64' );
-                    logs.classList.add( 'h-[500px]' );
-                } else
-                {
-                    logs.classList.remove( 'h-[500px]' );
-                    logs.classList.add( 'h-64' );
-                }
-            }
-
-            function showProgress ()
-            {
-                document.getElementById( 'input-section' ).classList.add( 'opacity-50', 'pointer-events-none' );
-                document.getElementById( 'progress-section' ).classList.remove( 'hidden' );
-                document.getElementById( 'results-section' ).classList.add( 'hidden' );
-            }
-
-            async function showResults ()
-            {
-                document.getElementById( 'input-section' ).classList.remove( 'opacity-50', 'pointer-events-none' );
-                document.getElementById( 'progress-section' ).classList.add( 'hidden' );
-                document.getElementById( 'results-section' ).classList.remove( 'hidden' );
-
-                // Fetch clips
                 try
                 {
                     const res = await fetch( '/api/clips' );
                     const clips = await res.json();
-
-                    const grid = document.getElementById( 'clips-grid' );
-                    grid.innerHTML = '';
+                    const container = document.getElementById( 'clips-list' );
+                    document.getElementById( 'clips-count' ).textContent = `${ clips.length } clips`;
 
                     if ( clips.length === 0 )
                     {
-                        grid.innerHTML = '<p class="text-slate-500 col-span-3 text-center">Nenhum clipe encontrado ainda.</p>';
+                        container.innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>';
                         return;
                     }
 
-                    clips.forEach( clip =>
+                    container.innerHTML = clips.map( clip =>
                     {
-                        // Badge Color
-                        let badgeClass = 'score-low';
-                        if ( clip.score >= 80 ) badgeClass = 'score-high';
-                        else if ( clip.score >= 50 ) badgeClass = 'score-med';
-
-                        // Card HTML with Play Action
-                        const html = `
-                            <div class="glass-panel rounded-xl overflow-hidden hover:scale-[1.02] transition-transform duration-300 group">
-                                <div class="relative aspect-[9/16] bg-black cursor-pointer" onclick="openModal('${ clip.video }', '${ clip.title.replace( /'/g, "\\'" ) }')">
-                                    ${ clip.thumb ?
-                                `<img src="/exports/${ clip.thumb }" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Thumbnail">` :
-                                `<div class="flex items-center justify-center h-full text-slate-600">Sem Capa</div>`
+                        const scoreClass = clip.score >= 8 ? 'score-high' : clip.score >= 5 ? 'score-mid' : 'score-low';
+                        return `
+                        <div class="clip-card bg-slate-800/50 rounded-lg p-3 cursor-pointer flex gap-3"
+                             onclick="openModal('${ clip.video }', '${ sanitize( clip.title ) }')">
+                            <div class="w-14 h-20 bg-slate-700 rounded overflow-hidden flex-shrink-0">
+                                ${ clip.thumb ?
+                                `<img src="/exports/${ clip.thumb }" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='🎬'">` :
+                                `<div class="w-full h-full flex items-center justify-center text-xl">🎬</div>`
                             }
-                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <div class="bg-white/20 backdrop-blur-sm p-3 rounded-full">
-                                            <span class="text-3xl">▶️</span>
-                                        </div>
-                                    </div>
-                                    <div class="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${ badgeClass }">
-                                        viral score: ${ clip.score }
-                                    </div>
-                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
-                                         <p class="text-white font-bold text-sm line-clamp-2">${ clip.title }</p>
-                                    </div>
-                                </div>
-
-                                <div class="p-4 flex gap-2">
-                                    <button onclick="openModal('${ clip.video }', '${ clip.title.replace( /'/g, "\\'" ) }')" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-center py-2 rounded-lg text-sm font-semibold transition-colors">
-                                        Assistir
-                                    </button>
-                                    <button onclick="window.open('/exports/${ clip.video.replace( '.mp4', '.json' ).replace( 'clip_', 'metadata_' ) }', '_blank')" class="px-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg" title="Ver Metadados">
-                                        📝
-                                    </button>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-white line-clamp-2 mb-1">${ sanitize( clip.title ) }</div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold text-white ${ scoreClass }">
+                                        ${ clip.score }
+                                    </span>
+                                    <button onclick="event.stopPropagation(); deleteClip('${ clip.video }')"
+                                        class="text-red-400 hover:text-red-300 text-xs">🗑️</button>
                                 </div>
                             </div>
-                        `;
-                        grid.innerHTML += html;
-                    } );
-
+                        </div>
+                    `;
+                    } ).join( '' );
                 } catch ( e )
                 {
-                    console.error( "Erro ao carregar clips", e );
+                    console.error( 'Error loading clips:', e );
                 }
             }
 
-            // --- Modal Logic ---
-            function openModal ( videoFile, title )
+            // =====================
+            // UI HELPERS
+            // =====================
+            function updateServerStatus ( online )
             {
-                const modal = document.getElementById( 'video-modal' );
-                const videoEl = document.getElementById( 'modal-video' );
-                const dlBtn = document.getElementById( 'modal-download' );
-                const titleEl = document.getElementById( 'modal-title' );
-
-                videoEl.src = `/exports/${ videoFile }`;
-                dlBtn.href = `/exports/${ videoFile }`;
-                titleEl.textContent = title;
-
-                modal.classList.remove( 'hidden' );
-                videoEl.play();
+                const el = document.getElementById( 'server-status' );
+                if ( online )
+                {
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="online">Online</span>`;
+                } else
+                {
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="offline">Offline</span>`;
+                }
             }
 
-            function closeModal ()
+            function updateHistory ( input, status )
             {
-                const modal = document.getElementById( 'video-modal' );
-                const videoEl = document.getElementById( 'modal-video' );
+                const filename = input ? input.split( '/' ).pop().split( '\\' ).pop() : 'N/A';
+                let statusText = '⏳ Processando...';
+                let statusClass = 'processing';
 
-                videoEl.pause();
-                videoEl.src = "";
-                modal.classList.add( 'hidden' );
+                if ( status === 'done' ) { statusText = '✅ Concluído'; statusClass = 'online'; }
+                else if ( status === 'error' ) { statusText = '❌ Erro'; statusClass = 'offline'; }
+                else if ( status === 'cancelled' ) { statusText = '🛑 Cancelado'; statusClass = 'text-slate-400'; }
+                else if ( status === 'idle' ) { statusText = '⏸️ Pronto'; statusClass = 'text-slate-400'; }
+
+                document.getElementById( 'history-content' ).innerHTML = `
+                <div class="p-2 bg-slate-800/50 rounded-lg">
+                    <div class="font-medium text-white truncate">${ sanitize( filename ) }</div>
+                    <div class="${ statusClass } text-xs mt-1">${ statusText }</div>
+                </div>
+            `;
             }
 
-            async function downloadAll ()
+            function showProcessingUI ()
             {
-                alert( "Use o botão de baixar em cada card por enquanto!" );
+                isProcessing = true;
+                document.getElementById( 'start-btn' ).classList.add( 'hidden' );
+                document.getElementById( 'stop-btn' ).classList.remove( 'hidden' );
+                document.getElementById( 'process-status' ).textContent = 'Processando...';
+                document.getElementById( 'process-status' ).className = 'font-medium processing';
             }
 
-            function resetUI ()
+            function hideProcessingUI ()
             {
-                document.getElementById( 'input-section' ).classList.remove( 'opacity-50', 'pointer-events-none' );
-                document.getElementById( 'progress-section' ).classList.add( 'hidden' );
+                isProcessing = false;
+                document.getElementById( 'start-btn' ).classList.remove( 'hidden' );
+                document.getElementById( 'stop-btn' ).classList.add( 'hidden' );
+                document.getElementById( 'process-status' ).textContent = 'Aguardando';
+                document.getElementById( 'process-status' ).className = 'font-medium text-slate-300';
+                document.getElementById( 'process-step' ).textContent = '--';
+            }
+
+            function addLog ( text )
+            {
+                const console = document.getElementById( 'console' );
+                const line = document.createElement( 'div' );
+                line.textContent = text;
+                console.appendChild( line );
+                console.scrollTop = console.scrollHeight;
+
+                const count = console.querySelectorAll( 'div' ).length;
+                document.getElementById( 'log-count' ).textContent = `${ count } linhas`;
+            }
+
+            function sanitize ( str )
+            {
+                return String( str ).replace( /[<>]/g, '' ).replace( /'/g, "\\'" );
+            }
+
+            // =====================
+            // MODE
+            // =====================
+            function setMode ( m )
+            {
+                mode = m;
+                const btnUrl = document.getElementById( 'tab-url' );
+                const btnAutonomous = document.getElementById( 'tab-autonomous' );
+                const btnFile = document.getElementById( 'tab-file' );
+                const input = document.getElementById( 'input-val' );
+                const browse = document.getElementById( 'browse-btn' );
+                const startBtnText = document.getElementById( 'start-btn-text' );
+
+                // Reset all tabs
+                [ btnUrl, btnAutonomous, btnFile ].forEach( b =>
+                {
+                    b.className = "flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+                } );
+
+                if ( m === 'url' )
+                {
+                    btnUrl.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
+                    input.placeholder = "Cole a URL do YouTube...";
+                    browse.classList.add( 'hidden' );
+                    startBtnText.textContent = "GERAR CLIPS";
+                } else if ( m === 'autonomous' )
+                {
+                    btnAutonomous.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-cyan-600 text-white transition-all";
+                    input.placeholder = "Cole link do artigo ou site...";
+                    browse.classList.remove( 'hidden' );
+                    startBtnText.textContent = "GERAÇÃO AUTÔNOMA";
+                } else
+                {
+                    btnFile.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
+                    input.placeholder = "Selecione um arquivo de vídeo...";
+                    browse.classList.remove( 'hidden' );
+                    startBtnText.textContent = "GERAR CLIPS";
+                }
+            }
+
+            async function browseFile ()
+            {
+                try
+                {
+                    const res = await fetch( '/browse' );
+                    const data = await res.json();
+                    if ( data.path )
+                    {
+                        document.getElementById( 'input-val' ).value = data.path;
+                    }
+                } catch ( e )
+                {
+                    alert( 'Erro ao abrir seletor de arquivos' );
+                }
+            }
+
+            // =====================
+            // PROCESS CONTROL
+            // =====================
+            async function startProcessing ()
+            {
+                const input = document.getElementById( 'input-val' ).value.trim();
+                if ( !input )
+                {
+                    alert( 'Digite uma URL ou selecione um arquivo!' );
+                    return;
+                }
+
+                // AUTO-DELETE before starting
+                addLog( '🗑️ Limpando dados anteriores automaticamente...' );
+                try
+                {
+                    await fetch( '/api/nuke', { method: 'DELETE' } );
+                    addLog( '✅ Limpeza concluída' );
+                } catch ( e )
+                {
+                    addLog( '⚠️ Aviso na limpeza' );
+                }
+
+                showProcessingUI();
+                updateHistory( input, 'processing' );
+
+                try
+                {
+                    // Check if it's autonomous mode
+                    const endpoint = mode === 'autonomous' ? '/api/generate/autonomous' : '/run';
+
+                    const clips = parseInt( document.getElementById( 'input-clips' ).value ) || 3;
+                    const min_duration = parseInt( document.getElementById( 'input-min-dur' ).value ) || 30;
+                    const max_duration = parseInt( document.getElementById( 'input-max-dur' ).value ) || 60;
+
+                    const body = mode === 'autonomous' ?
+                        JSON.stringify( { url: input } ) :
+                        JSON.stringify( { mode, input, clips, min_duration, max_duration } );
+
+                    const res = await fetch( endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    } );
+                    const data = await res.json();
+
+                    if ( data.status === 'error' )
+                    {
+                        alert( data.message );
+                        hideProcessingUI();
+                        updateHistory( input, 'error' );
+                    } else
+                    {
+                        connectStream();
+                    }
+                } catch ( e )
+                {
+                    alert( 'Erro de conexão' );
+                    hideProcessingUI();
+                }
+            }
+
+            async function stopProcessing ()
+            {
+                try
+                {
+                    await fetch( '/api/stop', { method: 'POST' } );
+                    addLog( '🛑 Processo cancelado' );
+                    hideProcessingUI();
+                    updateHistory( document.getElementById( 'input-val' ).value, 'cancelled' );
+                    if ( eventSource )
+                    {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                } catch ( e )
+                {
+                    alert( 'Erro ao cancelar' );
+                }
             }
 
             function connectStream ()
             {
-                const logsObj = document.getElementById( 'logs-preview' );
-                const statusText = document.getElementById( 'status-text' );
-                const evtSource = new EventSource( "/stream" );
+                if ( eventSource ) eventSource.close();
 
-                evtSource.onmessage = function ( e )
+                eventSource = new EventSource( '/stream' );
+
+                eventSource.onmessage = ( e ) =>
                 {
                     let text = e.data;
-                    if ( text.startsWith( "data: " ) ) text = text.substring( 6 );
+                    if ( text.startsWith( 'data: ' ) ) text = text.substring( 6 );
+                    addLog( text );
 
-                    logsObj.innerText += text + "\\n";
-                    logsObj.scrollTop = logsObj.scrollHeight;
+                    const step = document.getElementById( 'process-step' );
+                    if ( text.includes( 'STAGE 1' ) ) step.textContent = '📥 Download';
+                    if ( text.includes( 'STAGE 2:' ) && !text.includes( '2.5' ) ) step.textContent = '🎙️ Transcrição';
+                    if ( text.includes( 'STAGE 3' ) ) step.textContent = '🧠 Análise IA';
+                    if ( text.includes( 'STAGE 4' ) ) step.textContent = '✂️ Edição';
+                    if ( text.includes( 'STAGE 5' ) || text.includes( 'STAGE 6' ) ) step.textContent = '🚀 Finalizando';
 
-                    // Simple parser for status updates
-                    if ( text.includes( "STAGE 1" ) ) statusText.innerText = "Baixando Vídeo...";
-                    if ( text.includes( "STAGE 2" ) ) statusText.innerText = "Transcrevendo...";
-                    if ( text.includes( "STAGE 2.5" ) ) statusText.innerText = "Planejamento (Orchestrator)...";
-                    if ( text.includes( "STAGE 4" ) ) statusText.innerText = "Cortando & Editando...";
-                    if ( text.includes( "Thumbnail" ) ) statusText.innerText = "Gerando Arte...";
-
-                    if ( text.includes( "[PROCESS FINISHED]" ) )
+                    if ( text.includes( '[PROCESS FINISHED]' ) )
                     {
-                        evtSource.close();
-                        statusText.innerText = "Concluído!";
-                        showResults(); // Enable results view
+                        eventSource.close();
+                        eventSource = null;
+                        hideProcessingUI();
+                        updateHistory( document.getElementById( 'input-val' ).value, text.includes( 'Sucesso' ) ? 'done' : 'error' );
+                        loadClips();
                     }
                 };
 
-                evtSource.onerror = function ()
+                eventSource.onerror = () =>
                 {
-                    if ( evtSource.readyState === EventSource.CLOSED )
+                    if ( eventSource )
                     {
-                        logsObj.innerText += "\\n[Desconectado]\\n";
+                        eventSource.close();
+                        eventSource = null;
                     }
                 };
             }
 
-            // Init
-            window.onload = loadState;
+            // =====================
+            // CLIP ACTIONS
+            // =====================
+            async function deleteClip ( filename )
+            {
+                if ( !confirm( `Deletar ${ filename }?` ) ) return;
+                try
+                {
+                    await fetch( `/api/exports/delete/${ filename }`, { method: 'DELETE' } );
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro ao deletar' );
+                }
+            }
 
+            async function deleteAllClips ()
+            {
+                if ( !confirm( 'Deletar TODOS os clips?' ) ) return;
+                try
+                {
+                    await fetch( '/api/exports/delete-all', { method: 'DELETE' } );
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro' );
+                }
+            }
 
+            async function nukeAll ()
+            {
+                if ( !confirm( '☢️ APAGAR TUDO (clips, histórico, cache)?' ) ) return;
+                try
+                {
+                    await fetch( '/api/nuke', { method: 'DELETE' } );
+                    document.getElementById( 'console' ).innerHTML = '<div>$ Tudo apagado. Sistema resetado.</div>';
+                    document.getElementById( 'history-content' ).innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum vídeo processado ainda.</div>';
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro' );
+                }
+            }
+
+            // =====================
+            // OTHER ACTIONS
+            // =====================
+            async function refreshAll ()
+            {
+                await loadHealth();
+                await loadStatus();
+                await loadClips();
+            }
+
+            async function clearLogs ()
+            {
+                try
+                {
+                    await fetch( '/api/logs/clear', { method: 'POST' } );
+                    document.getElementById( 'console' ).innerHTML = '<div>$ Logs limpos</div>';
+                    document.getElementById( 'log-count' ).textContent = '1 linha';
+                } catch ( e ) { }
+            }
+
+            // =====================
+            // MODAL
+            // =====================
+            function openModal ( video, title )
+            {
+                document.getElementById( 'modal-video' ).src = `/exports/${ video }`;
+                document.getElementById( 'modal-download' ).href = `/api/exports/download/${ video }`;
+                document.getElementById( 'modal-title' ).textContent = title;
+                document.getElementById( 'modal' ).classList.remove( 'hidden' );
+            }
+
+            function closeModal ()
+            {
+                document.getElementById( 'modal-video' ).pause();
+                document.getElementById( 'modal-video' ).src = '';
+                document.getElementById( 'modal' ).classList.add( 'hidden' );
+            }
+
+            document.addEventListener( 'keydown', e =>
+            {
+                if ( e.key === 'Escape' ) closeModal();
+                if ( e.key === 'Enter' && !isProcessing && document.activeElement.id === 'input-val' ) startProcessing();
+            } );
         </script>
     </body>
 

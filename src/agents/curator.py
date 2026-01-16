@@ -31,7 +31,9 @@ class CuratorAgent:
         self,
         audio_path: Path,
         transcript_segments: List[Dict],
-        num_clips: int = 3
+        num_clips: int = 3,
+        min_duration: int = 30,
+        max_duration: int = 60
     ) -> List[Dict]:
         """
         Curadora principal: seleciona os melhores momentos
@@ -40,12 +42,12 @@ class CuratorAgent:
             audio_path: Caminho do arquivo de áudio
             transcript_segments: Segmentos da transcrição
             num_clips: Número de clipes a selecionar
-
-        Returns:
-            Lista dos melhores momentos virais
+            min_duration: Duração mínima em segundos
+            max_duration: Duração máxima em segundos
         """
         logger.info("=" * 50)
         logger.info("🎭 AGENTE CURADOR - Selecionando momentos virais")
+        logger.info(f"   Config: {num_clips} clips | {min_duration}-{max_duration}s")
         logger.info("=" * 50)
 
         # 1. Análise de emoção do áudio
@@ -60,7 +62,9 @@ class CuratorAgent:
         logger.info("\n📝 Etapa 2: Análise Viral da Transcrição")
         viral_moments = self.viral_analyzer.analyze_transcript(
             transcript_segments,
-            emotion_peaks
+            emotion_peaks,
+            min_duration=min_duration,
+            max_duration=max_duration
         )
 
         # 3. Filtrar apenas momentos de alta qualidade (8+)

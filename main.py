@@ -54,6 +54,8 @@ Exemplos de uso:
 
     # Opções Gerais
     parser.add_argument("--clips", type=int, default=3, help="Número de clipes para gerar")
+    parser.add_argument("--min-duration", type=int, default=30, help="Duração mínima por clipe (segundos)")
+    parser.add_argument("--max-duration", type=int, default=60, help="Duração máxima por clipe (segundos)")
     parser.add_argument("--whisper-model", default=Config.WHISPER_MODEL, help="Modelo do Whisper (tiny, base, small, medium, large)")
     parser.add_argument("--output", help="Diretório de saída customizado")
     parser.add_argument("--keep-temp", action="store_true", help="Manter arquivos temporários")
@@ -262,7 +264,9 @@ Exemplos de uso:
         viral_moments = curator.curate_moments(
             video_data['audio_path'],
             segments,
-            num_clips=args.clips
+            num_clips=args.clips,
+            min_duration=args.min_duration,
+            max_duration=args.max_duration
         )
 
         if not viral_moments:
@@ -347,7 +351,7 @@ Exemplos de uso:
                             str(temp_output),
                             codec='libx264',
                             audio_codec='aac',
-                            fps=Config.VIDEO_FPS,
+                            fps=Config.VIDEO_FPS or clip_video.fps or 30,
                             logger=None
                         )
 
@@ -413,6 +417,90 @@ Exemplos de uso:
             logger.error("❌ Nenhum clipe foi gerado com sucesso")
             sys.exit(1)
 
+        # STAGE 4.2: Narração (Intro/Outro) com Voz Personalizada
+        # Sempre tenta adicionar se houver narrador disponível
+        try:
+            logger.info("")
+            logger.info("=" * 50)
+            logger.info("STAGE 4.2: NARRAÇÃO & VOZ (Intro/Outro)")
+            logger.info("=" * 50)
+
+            from src.modules.narrator import get_narrator
+            from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips, ImageClip, TextClip, CompositeVideoClip, ColorClip
+
+            narrator = get_narrator()
+
+            # Só processa se tiver voz personalizada ou se o usuário pediu (implícito na preferência)
+            if narrator.has_custom_voice or EDGE_TTS_AVAILABLE:
+
+                for clip_data in generated_clips:
+                    try:
+                        clip_path = clip_data['path']
+                        moment = clip_data['moment']
+                        hook = moment.get('hook', 'Vídeo Incrível')
+
+                        logger.info(f"\n🎙️ Adicionando narração para: {clip_path.name}")
+
+                        # 1. Gerar áudio da Intro
+                        intro_audio_path = Config.TEMP_DIR / f"{clip_path.stem}_intro.mp3"
+                        # Usa o hook como base para o título da intro
+                        if narrator.generate_intro(hook, intro_audio_path):
+                            logger.info(f"   ✅ Intro gerada: {intro_audio_path.name}")
+
+                            # 2. Criar Clipe de Intro (Visual)
+                            # Pega o primeiro frame do vídeo para fundo
+                            video = VideoFileClip(str(clip_path))
+                            first_frame = video.get_frame(0)
+
+                            # Criar áudio clip
+                            intro_audio = AudioFileClip(str(intro_audio_path))
+                            duration = intro_audio.duration + 0.5 # +0.5s de respiro
+
+                            # Fundo Blur ou Cor
+                            # Para simplificar e evitar erros de ImageClip/numpy, vamos usar ColorClip
+                            bg_clip = ColorClip(size=video.size, color=(20, 20, 30), duration=duration)
+
+                            # Tentar adicionar texto (requer ImageMagick)
+                            # Se falhar, vai só o fundo com áudio
+                            final_intro = bg_clip.set_audio(intro_audio)
+
+                            # 3. Concatenar [Intro + Video]
+                            final_video = concatenate_videoclips([final_intro, video])
+
+                            # Salvar output
+                            temp_output = clip_path.with_suffix('.intro.mp4')
+                            final_video.write_videofile(
+                                str(temp_output),
+                                codec='libx264',
+                                audio_codec='aac',
+                                fps=Config.VIDEO_FPS or video.fps or 30,
+                                logger=None
+                            )
+
+                            # Limpar
+                            video.close()
+                            intro_audio.close()
+                            final_video.close()
+                            final_intro.close()
+
+                            # Substituir original
+                            clip_path.unlink()
+                            temp_output.rename(clip_path)
+                            logger.info("   ✅ Intro anexada ao vídeo!")
+
+                        else:
+                            logger.warning("   ⚠️ Falha ao gerar áudio da intro")
+
+                    except Exception as e:
+                        logger.error(f"   Erro na narração do clip: {e}")
+                        continue
+            else:
+                logger.info("   Ignorando narração (Sem voz personalizada ou TTS indisponível)")
+
+        except Exception as e:
+            logger.error(f"⚠️ Erro fatal no estágio de narração: {e}")
+
+
         # B-Rolls Automáticos (se habilitado)
         if args.broll:
             logger.info("")
@@ -460,7 +548,7 @@ Exemplos de uso:
                             str(temp_output),
                             codec='libx264',
                             audio_codec='aac',
-                            fps=Config.VIDEO_FPS,
+                            fps=Config.VIDEO_FPS or video_clip.fps or 30,
                             logger=None
                         )
 
@@ -527,7 +615,7 @@ Exemplos de uso:
                             str(temp_output),
                             codec='libx264',
                             audio_codec='aac',
-                            fps=Config.VIDEO_FPS,
+                            fps=Config.VIDEO_FPS or video_clip.fps or 30,
                             logger=None
                         )
 

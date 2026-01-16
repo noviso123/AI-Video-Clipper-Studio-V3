@@ -13,7 +13,22 @@ import librosa
 logger = logging.getLogger(__name__)
 
 class AudioEnhancer:
+    def _get_ffmpeg_path(self) -> str:
+        """Localiza o binário do FFmpeg de forma robusta"""
+        try:
+            import imageio_ffmpeg
+            return imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            return 'ffmpeg'
+
     def __init__(self):
+        # Garantir que pydub encontre ffmpeg
+        try:
+            ffmpeg_path = self._get_ffmpeg_path()
+            AudioSegment.converter = ffmpeg_path
+            AudioSegment.ffmpeg = ffmpeg_path
+        except:
+            pass
         logger.info("🎚️ Audio Enhancer: Inicializado")
 
     def enhance_audio(self, input_path: Path, output_path: Path, reduce_noise: bool = True):

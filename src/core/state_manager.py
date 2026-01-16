@@ -50,6 +50,12 @@ class StateManager:
                 self.state["logs"] = self.state["logs"][-2000:]
         self.save_state()
 
+    def clear_logs(self):
+        """Limpa todos os logs atuais"""
+        with lock:
+            self.state["logs"] = []
+        self.save_state()
+
     def set_project(self, input_val, mode):
         self.state["current_project"] = {"input": input_val, "mode": mode}
         self.state["logs"] = [] # Reset logs no novo projeto

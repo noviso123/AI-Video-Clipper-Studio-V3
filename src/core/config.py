@@ -8,6 +8,37 @@ from dotenv import load_dotenv
 # Carregar variáveis de ambiente
 load_dotenv()
 
+# =====================
+# FFmpeg Injection
+# =====================
+try:
+    import imageio_ffmpeg
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    ffmpeg_dir = os.path.dirname(ffmpeg_exe)
+    if ffmpeg_dir not in os.environ["PATH"]:
+        os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
+
+    # Configure pydub
+    try:
+        from pydub import AudioSegment
+        AudioSegment.converter = ffmpeg_exe
+        AudioSegment.ffmpeg = ffmpeg_exe
+        AudioSegment.ffprobe = os.path.join(ffmpeg_dir, "ffprobe.exe")
+    except:
+        pass
+except ImportError:
+    pass
+
+# =====================
+# Sys Path Injection (Module Fallback)
+# =====================
+# Adiciona site-packages do sistema caso módulos estejam faltando no venv
+import sys
+system_site_packages = r'C:\Program Files\Python313\Lib\site-packages'
+if os.path.exists(system_site_packages) and system_site_packages not in sys.path:
+    # Coloca no final para dar prioridade ao venv
+    sys.path.append(system_site_packages)
+
 class Config:
     """Configurações centralizadas do sistema"""
 
@@ -50,6 +81,14 @@ class Config:
     # Debug
     DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    SSL_VERIFY = os.getenv("SSL_VERIFY", "true").lower() == "true"
+    LOCAL_MODE = os.getenv("LOCAL_MODE", "false").lower() == "true"
+
+    # Pexels API (B-Rolls)
+    PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
+
+    # OpenAI
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
     @classmethod
     def ensure_directories(cls):

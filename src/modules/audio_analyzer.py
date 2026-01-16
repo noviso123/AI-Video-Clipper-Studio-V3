@@ -120,6 +120,14 @@ class AudioEmotionAnalyzer:
 
         return peaks
 
+    def _get_ffmpeg_path(self) -> str:
+        """Localiza o binário do FFmpeg de forma robusta"""
+        try:
+            import imageio_ffmpeg
+            return imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            return 'ffmpeg'
+
     def _detect_dramatic_silences(self, audio_path: Path) -> List[Dict]:
         """Detecta pausas dramáticas (silêncios tensos)"""
         logger.info("   🤫 Detectando silêncios dramáticos...")
@@ -127,14 +135,10 @@ class AudioEmotionAnalyzer:
         peaks = []
 
         try:
-            # Fix: Pydub needs explicit ffmpeg path on Windows
-            try:
-                import imageio_ffmpeg
-                ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-                AudioSegment.converter = ffmpeg_path
-                AudioSegment.ffmpeg = ffmpeg_path
-            except:
-                pass  # Usar ffmpeg do sistema
+            # Fix: Garantir que o Pydub encontre o FFmpeg
+            ffmpeg_path = self._get_ffmpeg_path()
+            AudioSegment.converter = ffmpeg_path
+            AudioSegment.ffmpeg = ffmpeg_path
 
             # Usar pydub para detectar silêncios
             audio = AudioSegment.from_file(str(audio_path))

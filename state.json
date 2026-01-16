@@ -1,23 +1,50 @@
 {
-  "current_project": {
-    "input": "C:/Users/12001036/Downloads/videoplayback.mp4",
-    "mode": "file"
-  },
-  "status": "processing",
   "logs": [
+    "C:\\Users\\12001036\\Downloads\\Manus ai video\\ai-video-clipper\\venv\\lib\\site-packages\\pydub\\utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work",
+    "warn(\"Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work\", RuntimeWarning)",
     "",
     "============================================================",
     "\ud83c\udfac AI VIDEO CLIPPER - Sistema de Clipping Autom\u00e1tico",
     "============================================================",
     "",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main |",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | ==================================================",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | STAGE 1: AQUISI\u00c7\u00c3O DO V\u00cdDEO",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | ==================================================",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | \ud83d\udcc2 Processando arquivo local: videoplayback.mp4",
-    "\u001b[32mINFO\u001b[0m | 17:39:14 | Main | \ud83d\udd0a Extraindo \u00e1udio do arquivo local..."
+    "\u001b[32mINFO\u001b[0m | 17:12:26 | Main |",
+    "\u001b[32mINFO\u001b[0m | 17:12:26 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:12:26 | Main | STAGE 1: AQUISI\u00c7\u00c3O DO V\u00cdDEO",
+    "\u001b[32mINFO\u001b[0m | 17:12:26 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:12:26 | Main | \ud83d\udcc2 Processando arquivo local: C:\\Users\\12001036\\Downloads\\videoplayback.mp4",
+    "\u001b[32mINFO\u001b[0m | 17:12:27 | Main | \ud83d\udd0a Extraindo \u00e1udio do arquivo local...",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main | \u2705 \u00c1udio extra\u00eddo com sucesso",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main |",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main | \ud83d\udcca Informa\u00e7\u00f5es do V\u00eddeo:",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main |    T\u00edtulo: Videoplayback",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main |    Canal: Local File",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main |    Dura\u00e7\u00e3o: 69:22",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main |",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main | STAGE 2: TRANSCRI\u00c7\u00c3O (Whisper tiny)",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | Main | ==================================================",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | src.modules.transcriber | \ud83c\udfa4 Engine: Vosk (100% OFFLINE)",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | src.modules.transcriber | \u23f3 Procurando modelo Vosk...",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | src.modules.transcriber |    Modelo encontrado: vosk-model-small-pt-0.3",
+    "\u001b[32mINFO\u001b[0m | 17:13:31 | src.modules.transcriber |    Carregando...",
+    "\u001b[32mINFO\u001b[0m | 17:13:32 | src.modules.transcriber | \u2705 Modelo Vosk carregado com sucesso!",
+    "\u001b[32mINFO\u001b[0m | 17:13:32 | src.modules.transcriber | \ud83c\udf99\ufe0f Transcrevendo: videoplayback.mp3",
+    "\u001b[32mINFO\u001b[0m | 17:13:32 | src.modules.transcriber |    Modelo: vosk-model-small-pt-0.3",
+    "\u001b[32mINFO\u001b[0m | 17:13:32 | src.modules.transcriber |    Convertendo para WAV 16kHz...",
+    "\u001b[32mINFO\u001b[0m | 17:13:37 | src.modules.transcriber |    \u2705 Convers\u00e3o conclu\u00edda",
+    "\u001b[32mINFO\u001b[0m | 17:13:37 | src.modules.transcriber |    Processando transcri\u00e7\u00e3o...",
+    "\u001b[32mINFO\u001b[0m | 17:13:37 | src.modules.transcriber |    Dura\u00e7\u00e3o: 69:22",
+    "\u001b[32mINFO\u001b[0m | 17:17:01 | src.modules.transcriber |    Progresso: 10%",
+    "\u001b[32mINFO\u001b[0m | 17:20:30 | src.modules.transcriber |    Progresso: 20%",
+    "\u001b[32mINFO\u001b[0m | 17:24:07 | src.modules.transcriber |    Progresso: 30%",
+    "\u001b[32mINFO\u001b[0m | 17:27:41 | src.modules.transcriber |    Progresso: 40%"
   ],
+  "status": "processing",
+  "current_project": {
+    "input": "C:/Users/12001036/Downloads/videoplayback.mp4",
+    "mode": "file"
+  },
+  "running": true,
   "generated_clips": [],
-  "last_updated": 0,
-  "running": false
+  "timestamp": "2026-01-16T17:26:36.128188"
 }

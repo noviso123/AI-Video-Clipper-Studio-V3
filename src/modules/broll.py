@@ -70,6 +70,51 @@ class BRollManager:
         logger.info(f"   Encontrados {len(broll_moments)} momentos para B-Rolls")
         return broll_moments
 
+    def parse_agent_instructions(self, script: str, segments: List[Dict]) -> List[Dict]:
+        """
+        Extrai instruções visuais [B-Roll: ...] do roteiro e sincroniza com o áudio.
+        """
+        import re
+        logger.info("🎬 Analisando instruções visuais do Diretor...")
+
+        # Encontrar todas as instruções [B-Roll: termo]
+        matches = re.finditer(r'\[B-Roll:\s*(.*?)\]', script, re.IGNORECASE)
+        agent_moments = []
+
+        script_parts = re.split(r'\[B-Roll:.*?\]', script, flags=re.IGNORECASE)
+
+        # Tentar estimar posição no vídeo baseado no texto ao redor
+        current_time = 0
+        for i, match in enumerate(matches):
+            search_term = match.group(1).strip()
+
+            # Encontrar o ponto aproximado no tempo para esse trecho do script
+            # Simples: dividir o tempo total proporcionalmente ao texto
+            # Mais complexo: buscar palavras no transcript
+
+            # Por enquanto, vamos buscar se o texto antes do B-Roll existe no transcript
+            prev_text = script_parts[i].strip().split()[-5:] if i < len(script_parts) else []
+            prev_text_str = " ".join(prev_text).lower()
+
+            found_start = current_time
+            if prev_text_str:
+                for s in segments:
+                    if prev_text_str in s['text'].lower():
+                        found_start = s['end']
+                        break
+
+            agent_moments.append({
+                'timestamp': found_start,
+                'duration': 3.0, # Padrão para B-Roll de agente
+                'category': 'agent_request',
+                'search_terms': [search_term],
+                'text': f"Diretor: {search_term}"
+            })
+            current_time = found_start + 1.0
+
+        logger.info(f"   ✅ {len(agent_moments)} instruções do Diretor processadas")
+        return agent_moments
+
     def get_stock_image(self, query: str) -> Optional[Path]:
         """
         Busca imagem de stock (Pexels API ou cache local)
@@ -85,9 +130,9 @@ class BRollManager:
         if cache_file.exists():
             return cache_file
 
-        # Se não tem API key, avisar e retornar None (Produção Real)
+        # Se não tem API key, retornar None silenciosamente (Produção Local)
         if not self.api_key:
-            logger.error(f"   ❌ Erro: PEXELS_API_KEY não configurada. B-Roll ignorado para: {query}")
+            logger.debug(f"   Pexels API key não configurada. B-Roll ignorado para: {query}")
             return None
 
         try:
@@ -96,7 +141,8 @@ class BRollManager:
             response = requests.get(
                 f'https://api.pexels.com/v1/search?query={query}&per_page=1',
                 headers=headers,
-                timeout=10
+                timeout=10,
+                verify=Config.SSL_VERIFY
             )
 
             if response.status_code == 200:
@@ -105,7 +151,7 @@ class BRollManager:
                     image_url = data['photos'][0]['src']['medium']
 
                     # Download da imagem
-                    img_response = requests.get(image_url, timeout=10)
+                    img_response = requests.get(image_url, timeout=10, verify=Config.SSL_VERIFY)
                     if img_response.status_code == 200:
                         with open(cache_file, 'wb') as f:
                             f.write(img_response.content)

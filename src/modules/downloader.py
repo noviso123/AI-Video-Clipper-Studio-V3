@@ -19,28 +19,20 @@ class VideoDownloader:
         self.temp_dir = Config.TEMP_DIR
         self.temp_dir.mkdir(exist_ok=True, parents=True)
 
+    def _get_ffmpeg_path(self) -> Optional[str]:
+        try:
+            import imageio_ffmpeg
+            return imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            return None
+
     def download_video(self, url: str, video_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Baixa vídeo do YouTube e extrai áudio
-
-        Args:
-            url: URL do vídeo do YouTube
-            video_id: ID personalizado (opcional, será gerado automaticamente)
-
-        Returns:
-            Dict com caminhos dos arquivos e metadados:
-            {
-                'video_path': Path,
-                'audio_path': Path,
-                'metadata': {
-                    'title': str,
-                    'duration': int,
-                    'uploader': str,
-                    'description': str
-                }
-            }
         """
         logger.info(f"📥 Iniciando download: {url}")
+
+        ffmpeg_path = self._get_ffmpeg_path()
 
         # Validar URL
         if not self._validate_url(url):
@@ -60,7 +52,12 @@ class VideoDownloader:
             'quiet': not Config.DEBUG_MODE,
             'no_warnings': True,
             'extract_flat': False,
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
         }
+
+        if ffmpeg_path:
+            ydl_opts['ffmpeg_location'] = ffmpeg_path
 
         try:
             # Download do vídeo
@@ -89,6 +86,8 @@ class VideoDownloader:
                 'outtmpl': str(audio_path.with_suffix('')),
                 'quiet': not Config.DEBUG_MODE,
             }
+            if ffmpeg_path:
+                audio_opts['ffmpeg_location'] = ffmpeg_path
 
             with yt_dlp.YoutubeDL(audio_opts) as ydl:
                 ydl.download([url])
