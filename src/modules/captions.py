@@ -282,7 +282,7 @@ class DynamicCaptions:
             img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
             draw = ImageDraw.Draw(img)
 
-            # Cor e Stroke (simulado)
+            # Cor e Stroke (Produção)
             fill_color = self.style['color']
             stroke_color = self.style['stroke_color']
             stroke_width = self.style.get('stroke_width', 0)

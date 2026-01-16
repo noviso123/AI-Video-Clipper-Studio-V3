@@ -66,5 +66,5 @@ class VoiceAgent:
             return None
 
     def get_available_voices(self) -> List[str]:
-        """Retorna lista de vozes disponíveis (simulado por enquanto)"""
+        """Retorna lista de vozes disponíveis no sistema"""
         return list(self.VOICES.values())

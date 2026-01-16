@@ -85,10 +85,10 @@ class BRollManager:
         if cache_file.exists():
             return cache_file
 
-        # Se não tem API key, usar placeholder
+        # Se não tem API key, avisar e retornar None (Produção Real)
         if not self.api_key:
-            logger.warning(f"   ⚠️ Sem API key do Pexels, usando placeholder para: {query}")
-            return self._create_placeholder(query)
+            logger.error(f"   ❌ Erro: PEXELS_API_KEY não configurada. B-Roll ignorado para: {query}")
+            return None
 
         try:
             # Buscar no Pexels
@@ -115,30 +115,7 @@ class BRollManager:
         except Exception as e:
             logger.warning(f"   Erro ao buscar B-Roll: {e}")
 
-        return self._create_placeholder(query)
-
-    def _create_placeholder(self, text: str) -> Path:
-        """Cria imagem placeholder quando API não está disponível"""
-        placeholder_path = self.cache_dir / f"placeholder_{text.replace(' ', '_')}.png"
-
-        if not placeholder_path.exists():
-            # Criar imagem placeholder simples com PIL
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-
-                img = Image.new('RGB', (800, 600), color=(30, 30, 30))
-                draw = ImageDraw.Draw(img)
-
-                # Texto centralizado
-                draw.text((400, 300), f"B-Roll: {text}", fill='white', anchor='mm')
-
-                img.save(placeholder_path)
-
-            except ImportError:
-                # Se PIL não disponível, criar arquivo vazio
-                placeholder_path.touch()
-
-        return placeholder_path
+        return None
 
     def add_brolls_to_clip(
         self,
