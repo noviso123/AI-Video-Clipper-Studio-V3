@@ -9,8 +9,14 @@ Write-Host "`n============================================================" -For
 Write-Host "  AI VIDEO CLIPPER - Orquestrador de IA Autônomo" -ForegroundColor Cyan
 Write-Host "============================================================`n" -ForegroundColor Cyan
 
-# 1. Verificar Requisitos
-Write-Host "[1/5] Verificando requisitos do sistema..." -ForegroundColor Yellow
+# 1. Verificar Requisitos e Configurar Sistema
+Write-Host "[1/5] Verificando requisitos e orquestrando sistema..." -ForegroundColor Yellow
+
+# Verificar privilégios de administrador
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "   ⚠️ Executando sem privilégios de Administrador. Algumas otimizações de sistema podem ser limitadas." -ForegroundColor Gray
+}
 
 # Python
 try {
@@ -24,10 +30,19 @@ try {
 # FFmpeg
 $ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
 if ($ffmpeg) {
-    Write-Host "   ✅ FFmpeg encontrado." -ForegroundColor Green
+    Write-Host "   ✅ FFmpeg encontrado no sistema." -ForegroundColor Green
 } else {
-    Write-Host "   ⚠️ FFmpeg não encontrado no PATH." -ForegroundColor Yellow
-    Write-Host "      Tentando localizar em pastas comuns..." -ForegroundColor Gray
+    Write-Host "   ⚠️ FFmpeg não encontrado no PATH. O sistema tentará usar a versão injetada no venv." -ForegroundColor Yellow
+}
+
+# Otimização de Firewall
+try {
+    if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Host "   🛡️ Configurando exceção de Firewall para porta 5000..." -ForegroundColor Gray
+        netsh advfirewall firewall add rule name="AI Video Clipper Web" dir=in action=allow protocol=TCP localport=5000 profile=any | Out-Null
+    }
+} catch {
+    Write-Host "   ⚠️ Falha ao configurar firewall." -ForegroundColor Gray
 }
 
 # 2. Configurar Ambiente Virtual

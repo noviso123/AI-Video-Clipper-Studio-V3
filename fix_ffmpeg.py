@@ -5,24 +5,38 @@ from pathlib import Path
 
 def apply_fix():
     try:
+        import sys
         source = imageio_ffmpeg.get_ffmpeg_exe()
-        # Assume venv structure
-        venv_scripts = Path("venv/Scripts").absolute()
-        if not venv_scripts.exists():
-            # Try to find python executable path and use its dir
-            import sys
-            venv_scripts = Path(sys.executable).parent
+        
+        # Detectar plataforma
+        is_windows = sys.platform == "win32"
+        
+        # Localizar diretório de binários do venv
+        if is_windows:
+            venv_bin = Path("venv/Scripts").absolute()
+            if not venv_bin.exists():
+                venv_bin = Path(sys.executable).parent
+            dest_name = "ffmpeg.exe"
+        else:
+            venv_bin = Path("venv/bin").absolute()
+            if not venv_bin.exists():
+                venv_bin = Path(sys.executable).parent
+            dest_name = "ffmpeg"
 
-        dest = venv_scripts / "ffmpeg.exe"
+        dest = venv_bin / dest_name
 
+        print(f"Plataforma: {sys.platform}")
         print(f"Source: {source}")
         print(f"Dest: {dest}")
 
         if not dest.exists():
             shutil.copy(source, dest)
-            print("✅ Copied ffmpeg.exe to venv/Scripts")
+            # No Linux, garantir permissão de execução
+            if not is_windows:
+                os.chmod(dest, 0o755)
+            print(f"✅ Copied ffmpeg to {venv_bin}")
         else:
-            print("ℹ️ ffmpeg.exe already exists in venv/Scripts")
+            print(f"ℹ️ ffmpeg already exists in {venv_bin}")
 
     except Exception as e:
         print(f"❌ Error: {e}")

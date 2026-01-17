@@ -325,11 +325,19 @@ class DynamicCaptions:
         import os
         
         font_paths = [
+            # Linux (Ubuntu/Debian)
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
             '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+            # Linux (Fedora/Bazzite)
+            '/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf',
+            '/usr/share/fonts/google-noto/NotoSans-Bold.ttf',
+            # Windows
             'C:/Windows/Fonts/arialbd.ttf',
             'C:/Windows/Fonts/impact.ttf',
+            # macOS
             '/System/Library/Fonts/Helvetica.ttc',
+            '/Library/Fonts/Arial Bold.ttf',
         ]
         
         for font_path in font_paths:

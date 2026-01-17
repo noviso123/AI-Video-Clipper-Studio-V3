@@ -441,11 +441,13 @@ class ThumbnailGenerator:
         """Obtém uma fonte adequada com fallbacks."""
         # Lista de fontes para tentar (em ordem de preferência)
         font_paths = [
-            # Linux
+            # Linux (Ubuntu/Debian)
             '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
             '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-            '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-            '/usr/share/fonts/truetype/ubuntu/Ubuntu-Bold.ttf',
+            # Linux (Fedora/Bazzite)
+            '/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf',
+            '/usr/share/fonts/google-noto/NotoSans-Bold.ttf',
             # Windows
             'C:/Windows/Fonts/arialbd.ttf',
             'C:/Windows/Fonts/impact.ttf',

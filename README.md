@@ -69,7 +69,20 @@ python main.py --url "URL" --clips 5 --captions --variants --critic
 - 8+ GB RAM (16 GB recomendado)
 - GPU NVIDIA com CUDA (opcional, mas acelera 10x)
 
-### 2. Instalação
+### 2. Instalação Automática (Recomendado)
+
+**Windows (PowerShell):**
+```powershell
+.\run_windows.ps1
+```
+
+**Linux (Bazzite/Fedora/Ubuntu) & macOS:**
+```bash
+chmod +x setup.sh run_web.sh
+./setup.sh
+```
+
+### 3. Instalação Manual
 
 ```bash
 # Clone o repositório

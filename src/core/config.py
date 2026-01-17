@@ -23,7 +23,11 @@ try:
         from pydub import AudioSegment
         AudioSegment.converter = ffmpeg_exe
         AudioSegment.ffmpeg = ffmpeg_exe
-        AudioSegment.ffprobe = os.path.join(ffmpeg_dir, "ffprobe.exe")
+        
+        # Detectar ffprobe baseado na plataforma
+        import sys
+        ffprobe_name = "ffprobe.exe" if sys.platform == "win32" else "ffprobe"
+        AudioSegment.ffprobe = os.path.join(ffmpeg_dir, ffprobe_name)
     except:
         pass
 except ImportError:
@@ -34,10 +38,16 @@ except ImportError:
 # =====================
 # Adiciona site-packages do sistema caso módulos estejam faltando no venv
 import sys
-system_site_packages = r'C:\Program Files\Python313\Lib\site-packages'
-if os.path.exists(system_site_packages) and system_site_packages not in sys.path:
-    # Coloca no final para dar prioridade ao venv
-    sys.path.append(system_site_packages)
+# Detectar site-packages do sistema de forma dinâmica (opcional, mas evita caminhos fixos)
+if sys.platform == "win32":
+    # Tentar localizar pasta de instalação do Python no Windows
+    python_base = os.path.dirname(sys.executable)
+    system_site_packages = os.path.join(python_base, 'Lib', 'site-packages')
+    if os.path.exists(system_site_packages) and system_site_packages not in sys.path:
+        sys.path.append(system_site_packages)
+else:
+    # No Linux, o venv geralmente já lida bem com isso, mas podemos adicionar se necessário
+    pass
 
 class Config:
     """Configurações centralizadas do sistema"""

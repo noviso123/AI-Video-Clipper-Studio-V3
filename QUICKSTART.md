@@ -2,13 +2,16 @@
 
 ## ⚡ Setup em 3 Passos
 
-### 1. Execute o Script de Setup
-```bash
-# Windows
-setup.bat
+### 1. Execute o Script de Setup (Orquestrador Automático)
 
-# Linux/Mac
-chmod +x setup.sh
+**Windows (PowerShell):**
+```powershell
+.\run_windows.ps1
+```
+
+**Linux (Bazzite/Fedora/Ubuntu) & macOS:**
+```bash
+chmod +x setup.sh run_web.sh
 ./setup.sh
 ```
 
