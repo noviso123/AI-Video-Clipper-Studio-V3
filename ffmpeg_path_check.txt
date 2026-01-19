@@ -1,0 +1,1 @@
+/var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/venv/lib64/python3.14/site-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2

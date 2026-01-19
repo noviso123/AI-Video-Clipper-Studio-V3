@@ -1,0 +1,161 @@
+nohup: ignorando entrada
+🕵️‍♂️ Testando Autenticação das Contas...
+
+🔍 Verificando TIKTOK...
+[32mINFO[0m | 00:38:29 | src.browsers.profile_manager | 🌐 Iniciando navegador para: tiktok
+[32mINFO[0m | 00:38:29 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/tiktok
+[32mINFO[0m | 00:38:29 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:38:33 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x56122c6f84e3 <unknown>
+#1 0x56122c427c76 <unknown>
+#2 0x56122c45504a <unknown>
+#3 0x56122c4504a1 <unknown>
+#4 0x56122c44d029 <unknown>
+#5 0x56122c48bccc <unknown>
+#6 0x56122c48b47f <unknown>
+#7 0x56122c482de3 <unknown>
+#8 0x56122c4582dd <unknown>
+#9 0x56122c45934e <unknown>
+#10 0x56122c6b83e4 <unknown>
+#11 0x56122c6bc3d7 <unknown>
+#12 0x56122c6c6b20 <unknown>
+#13 0x56122c6bd023 <unknown>
+#14 0x56122c68b1aa <unknown>
+#15 0x56122c6e16b8 <unknown>
+#16 0x56122c6e1847 <unknown>
+#17 0x56122c6f1243 <unknown>
+#18 0x7fc01ee12464 start_thread
+#19 0x7fc01ee955ac __clone3
+
+⚠️ Erro ao verificar tiktok: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x56122c6f84e3 <unknown>
+#1 0x56122c427c76 <unknown>
+#2 0x56122c45504a <unknown>
+#3 0x56122c4504a1 <unknown>
+#4 0x56122c44d029 <unknown>
+#5 0x56122c48bccc <unknown>
+#6 0x56122c48b47f <unknown>
+#7 0x56122c482de3 <unknown>
+#8 0x56122c4582dd <unknown>
+#9 0x56122c45934e <unknown>
+#10 0x56122c6b83e4 <unknown>
+#11 0x56122c6bc3d7 <unknown>
+#12 0x56122c6c6b20 <unknown>
+#13 0x56122c6bd023 <unknown>
+#14 0x56122c68b1aa <unknown>
+#15 0x56122c6e16b8 <unknown>
+#16 0x56122c6e1847 <unknown>
+#17 0x56122c6f1243 <unknown>
+#18 0x7fc01ee12464 start_thread
+#19 0x7fc01ee955ac __clone3
+
+
+🔍 Verificando YOUTUBE...
+[32mINFO[0m | 00:38:33 | src.browsers.profile_manager | 🌐 Iniciando navegador para: youtube
+[32mINFO[0m | 00:38:33 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/youtube
+[32mINFO[0m | 00:38:33 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:38:37 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x55d584e9e4e3 <unknown>
+#1 0x55d584bcdc76 <unknown>
+#2 0x55d584bfb04a <unknown>
+#3 0x55d584bf64a1 <unknown>
+#4 0x55d584bf3029 <unknown>
+#5 0x55d584c31ccc <unknown>
+#6 0x55d584c3147f <unknown>
+#7 0x55d584c28de3 <unknown>
+#8 0x55d584bfe2dd <unknown>
+#9 0x55d584bff34e <unknown>
+#10 0x55d584e5e3e4 <unknown>
+#11 0x55d584e623d7 <unknown>
+#12 0x55d584e6cb20 <unknown>
+#13 0x55d584e63023 <unknown>
+#14 0x55d584e311aa <unknown>
+#15 0x55d584e876b8 <unknown>
+#16 0x55d584e87847 <unknown>
+#17 0x55d584e97243 <unknown>
+#18 0x7fa7c6ade464 start_thread
+#19 0x7fa7c6b615ac __clone3
+
+⚠️ Erro ao verificar youtube: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x55d584e9e4e3 <unknown>
+#1 0x55d584bcdc76 <unknown>
+#2 0x55d584bfb04a <unknown>
+#3 0x55d584bf64a1 <unknown>
+#4 0x55d584bf3029 <unknown>
+#5 0x55d584c31ccc <unknown>
+#6 0x55d584c3147f <unknown>
+#7 0x55d584c28de3 <unknown>
+#8 0x55d584bfe2dd <unknown>
+#9 0x55d584bff34e <unknown>
+#10 0x55d584e5e3e4 <unknown>
+#11 0x55d584e623d7 <unknown>
+#12 0x55d584e6cb20 <unknown>
+#13 0x55d584e63023 <unknown>
+#14 0x55d584e311aa <unknown>
+#15 0x55d584e876b8 <unknown>
+#16 0x55d584e87847 <unknown>
+#17 0x55d584e97243 <unknown>
+#18 0x7fa7c6ade464 start_thread
+#19 0x7fa7c6b615ac __clone3
+
+
+🔍 Verificando INSTAGRAM...
+[32mINFO[0m | 00:38:37 | src.browsers.profile_manager | 🌐 Iniciando navegador para: instagram
+[32mINFO[0m | 00:38:37 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/instagram
+[32mINFO[0m | 00:38:37 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:38:40 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x55b7758d14e3 <unknown>
+#1 0x55b775600c76 <unknown>
+#2 0x55b77562e04a <unknown>
+#3 0x55b7756294a1 <unknown>
+#4 0x55b775626029 <unknown>
+#5 0x55b775664ccc <unknown>
+#6 0x55b77566447f <unknown>
+#7 0x55b77565bde3 <unknown>
+#8 0x55b7756312dd <unknown>
+#9 0x55b77563234e <unknown>
+#10 0x55b7758913e4 <unknown>
+#11 0x55b7758953d7 <unknown>
+#12 0x55b77589fb20 <unknown>
+#13 0x55b775896023 <unknown>
+#14 0x55b7758641aa <unknown>
+#15 0x55b7758ba6b8 <unknown>
+#16 0x55b7758ba847 <unknown>
+#17 0x55b7758ca243 <unknown>
+#18 0x7f69cf090464 start_thread
+#19 0x7f69cf1135ac __clone3
+
+⚠️ Erro ao verificar instagram: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x55b7758d14e3 <unknown>
+#1 0x55b775600c76 <unknown>
+#2 0x55b77562e04a <unknown>
+#3 0x55b7756294a1 <unknown>
+#4 0x55b775626029 <unknown>
+#5 0x55b775664ccc <unknown>
+#6 0x55b77566447f <unknown>
+#7 0x55b77565bde3 <unknown>
+#8 0x55b7756312dd <unknown>
+#9 0x55b77563234e <unknown>
+#10 0x55b7758913e4 <unknown>
+#11 0x55b7758953d7 <unknown>
+#12 0x55b77589fb20 <unknown>
+#13 0x55b775896023 <unknown>
+#14 0x55b7758641aa <unknown>
+#15 0x55b7758ba6b8 <unknown>
+#16 0x55b7758ba847 <unknown>
+#17 0x55b7758ca243 <unknown>
+#18 0x7f69cf090464 start_thread
+#19 0x7f69cf1135ac __clone3
+

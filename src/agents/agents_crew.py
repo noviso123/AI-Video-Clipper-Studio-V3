@@ -3,13 +3,30 @@ Multi-Agent System for Viral Content Generation
 Uses CrewAI to orchestrate autonomous research and copywriting.
 """
 import os
-from crewai import Agent, Task, Crew, Process
-from langchain_openai import ChatOpenAI
-from langchain_ollama import ChatOllama
 from ..core.config import Config
 from ..core.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+try:
+    from crewai import Agent, Task, Crew, Process
+    from langchain_openai import ChatOpenAI
+    from langchain_ollama import ChatOllama
+except ImportError:
+    logger.warning("CrewAI/LangChain not found. Using mocks.")
+    class Agent:
+        def __init__(self, **kwargs): pass
+    class Task:
+        def __init__(self, **kwargs): pass
+    class Crew:
+        def __init__(self, **kwargs): pass
+        def kickoff(self, inputs=None): return "CrewAI Mock Result: Autonomous mode unavailable due to missing dependencies."
+    class Process:
+        sequential = "sequential"
+    class ChatOpenAI:
+        def __init__(self, **kwargs): pass
+    class ChatOllama:
+        def __init__(self, **kwargs): pass
 
 # Configuration
 config = Config()

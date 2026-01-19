@@ -68,8 +68,8 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
     # Vídeo
-    CLIP_DURATION_MIN = int(os.getenv("CLIP_DURATION_MIN", 30))
-    CLIP_DURATION_MAX = int(os.getenv("CLIP_DURATION_MAX", 60))
+    CLIP_DURATION_MIN = int(os.getenv("CLIP_DURATION_MIN", 60))
+    CLIP_DURATION_MAX = int(os.getenv("CLIP_DURATION_MAX", 90))
     VIDEO_FPS = int(os.getenv("VIDEO_FPS", 30))
     VIDEO_QUALITY = os.getenv("VIDEO_QUALITY", "high")
     OUTPUT_RESOLUTION = tuple(map(int, os.getenv("OUTPUT_RESOLUTION", "1080x1920").split("x")))

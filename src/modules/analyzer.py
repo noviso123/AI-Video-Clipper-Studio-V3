@@ -15,7 +15,7 @@ logger = setup_logger(__name__)
 # Tentar importar Gemini
 GEMINI_AVAILABLE = False
 try:
-    import google.generativeai as genai
+# import google.generativeai as genai
     GEMINI_AVAILABLE = True
 except ImportError:
     logger.warning("google-generativeai não instalado.")
@@ -54,7 +54,8 @@ class ViralAnalyzer:
         segments: List[Dict],
         emotion_peaks: Optional[List[Dict]] = None,
         min_duration: int = 30,
-        max_duration: int = 60
+        max_duration: int = 60,
+        required_count: int = 3
     ) -> List[Dict]:
         """
         Analisa transcrição e identifica momentos virais usando abordagem Híbrida.
@@ -62,11 +63,13 @@ class ViralAnalyzer:
         from ..core.hybrid_ai import HybridAI
         hybrid = HybridAI()
 
-        return hybrid.call(
-            local_func=lambda: self._analyze_locally(segments, emotion_peaks, min_duration, max_duration),
+        results = hybrid.call(
+            local_func=lambda: self._analyze_locally(segments, emotion_peaks, min_duration, max_duration, required_count),
             gemini_func=lambda: self._analyze_with_gemini(segments, emotion_peaks, min_duration, max_duration) if self.gemini_client else None,
             task_name="Viral Analysis"
         )
+
+        return self._enforce_strict_duration(results, segments, min_duration)
 
     def _analyze_with_gemini(
         self,
@@ -179,9 +182,10 @@ RESPONDA EM JSON (SOMENTE JSON, sem markdown):
         segments: List[Dict],
         emotion_peaks: Optional[List[Dict]] = None,
         min_duration: int = 30,
-        max_duration: int = 60
+        max_duration: int = 60,
+        required_count: int = 3
     ) -> List[Dict]:
-        """Análise usando keywords locais (fallback)"""
+        """Análise usando keywords locais com Threshold Dinâmico"""
         logger.info(f"   📝 Usando análise local (duração: {min_duration}-{max_duration}s)...")
 
         viral_moments = []
@@ -191,40 +195,60 @@ RESPONDA EM JSON (SOMENTE JSON, sem markdown):
         # Gerar lista de durações para testar (ex: min, média, max)
         durations = sorted(list(set([min_duration, (min_duration + max_duration) // 2, max_duration])))
 
-        for i, segment in enumerate(segments):
-            start_time = segment['start']
+        # Threshold inicial
+        min_score = 6.0
+        
+        # Loop de tentativas (reduz threshold se não encontrar o suficiente)
+        for attempt in range(3):
+            viral_moments = []
+            logger.info(f"   🔍 Tentativa {attempt+1}: Buscando clips com score >= {min_score}")
+            
+            for i, segment in enumerate(segments):
+                start_time = segment['start']
 
-            for duration in durations:
-                if duration < clip_min or duration > clip_max:
-                    continue
+                for duration in durations:
+                    if duration < clip_min or duration > clip_max:
+                        continue
 
-                end_time = start_time + duration
-                clip_text = self._get_text_in_range(segments, start_time, end_time)
+                    end_time = start_time + duration
+                    clip_text = self._get_text_in_range(segments, start_time, end_time)
 
-                if not clip_text:
-                    continue
+                    if not clip_text:
+                        continue
 
-                score_data = self._calculate_viral_score(
-                    clip_text, start_time, end_time, emotion_peaks
-                )
+                    score_data = self._calculate_viral_score(
+                        clip_text, start_time, end_time, emotion_peaks
+                    )
 
-                if score_data['score'] >= 6.0:
-                    viral_moments.append({
-                        'start': start_time,
-                        'end': end_time,
-                        'score': score_data['score'],
-                        'hook': self._generate_hook(clip_text),
-                        'reason': score_data['reason'],
-                        'keywords': score_data['keywords'],
-                        'emotion_intensity': score_data['emotion_intensity'],
-                        'text_preview': clip_text[:100] + '...',
-                        'gemini_analysis': False
-                    })
+                    if score_data['score'] >= min_score:
+                        viral_moments.append({
+                            'start': start_time,
+                            'end': end_time,
+                            'score': score_data['score'],
+                            'hook': self._generate_hook(clip_text),
+                            'reason': score_data['reason'],
+                            'keywords': score_data['keywords'],
+                            'emotion_intensity': score_data['emotion_intensity'],
+                            'text_preview': clip_text[:100] + '...',
+                            'gemini_analysis': False
+                        })
 
-        viral_moments.sort(key=lambda x: x['score'], reverse=True)
-        viral_moments = self._remove_overlaps(viral_moments)
+            viral_moments.sort(key=lambda x: x['score'], reverse=True)
+            viral_moments = self._remove_overlaps(viral_moments)
+            
+            # Se encontrou o suficiente, para
+            if len(viral_moments) >= required_count:
+                break
+            
+            # Senão, reduz threshold
+            min_score -= 1.0
+            if min_score < 3.0: break # Limite mínimo de dignidade
 
         logger.info(f"✅ {len(viral_moments)} momentos virais identificados (local)")
+        
+        # Retornar TOP N se houver muitos
+        if len(viral_moments) > required_count * 2:
+             return viral_moments[:required_count * 2]
 
         return viral_moments
 
@@ -329,7 +353,53 @@ RESPONDA EM JSON (SOMENTE JSON, sem markdown):
         filtered = [moments[0]]
         for moment in moments[1:]:
             last = filtered[-1]
-            if moment['start'] >= last['end'] + min_gap:
-                filtered.append(moment)
+            if moment['start'] >= last['end'] - min_gap: # Permite um pequeno overlap, mas prioriza novos trechos
+                 # Se o overlap for pequeno (ex: 5s), permite para capturar conteúdo adjacente
+                 if moment['start'] >= last['end']:
+                    filtered.append(moment)
+                 # Se overlap for grande, ignora
 
         return filtered
+
+    def _enforce_strict_duration(self, moments: List[Dict], segments: List[Dict], min_duration: int) -> List[Dict]:
+        """GARANTE que nenhum clip tenha menos que min_duration (ex: 60s)"""
+        if not moments or not segments:
+            return moments
+            
+        video_duration = segments[-1]['end']
+        
+        for m in moments:
+            duration = m['end'] - m['start']
+            
+            if duration < min_duration:
+                # Precisa estender
+                diff = min_duration - duration
+                
+                # Tenta estender simetricamente (metade pra cada lado)
+                extend_start = diff / 2
+                extend_end = diff / 2
+                
+                # Ajusta start
+                new_start = m['start'] - extend_start
+                if new_start < 0:
+                    # Se bater no 0, joga o excesso pro final
+                    extend_end += (0 - new_start)
+                    new_start = 0
+                
+                # Ajusta end
+                new_end = m['end'] + extend_end
+                
+                # Se bater no final do video (improvável mas possível)
+                if new_end > video_duration:
+                    # Tenta compensar voltando o start (se possível)
+                    excess = new_end - video_duration
+                    new_end = video_duration
+                    new_start = max(0, new_start - excess) # Garante que start não fique negativo
+                
+                # Aplica
+                m['start'] = new_start
+                m['end'] = new_end
+                
+                logger.info(f"   ⚠️ Clip estendido para {min_duration}s: {m['start']:.1f}s - {m['end']:.1f}s (Original: {duration:.1f}s)")
+
+        return moments

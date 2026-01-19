@@ -90,10 +90,12 @@ class FrameAnalyzer:
             pass
 
         # Cache de análises anteriores para transições suaves
-        self.previous_analyses: List[FrameAnalysis] = []
-        self.smoothing_window = 5  # Frames para suavização
+        # Configurações de Estabilização (Cinematic Tracking)
+        self.smoothing_window = 10  # Aumentado para movimentos mais suaves (era 5)
+        self.deadzone_threshold = 0.05 # 5% da tela: pequena mudança não move a camera
+        self.hysteresis_factor = 0.8   # Fator de "pegajosidade" da câmera
 
-        logger.info("🔍 Frame Analyzer: Inicializado")
+        logger.info("🔍 Frame Analyzer: Inicializado (Cinematic Mode)")
         logger.info(f"   Face Detection: {'Ativo' if self.face_cascade else 'Inativo'}")
 
     def analyze_video(
@@ -541,19 +543,41 @@ class FrameAnalyzer:
         if len(analyses) < 3:
             return analyses
 
-        # Aplicar média móvel nos centros de crop
-        for i in range(1, len(analyses) - 1):
-            prev_center = analyses[i-1].crop_center
-            curr_center = analyses[i].crop_center
-            next_center = analyses[i+1].crop_center
+        # Aplicar estabilização com "Deadzone" e "Inércia"
+        stable_center = analyses[0].crop_center
+        
+        for i in range(1, len(analyses)):
+            current = analyses[i]
+            target = current.crop_center
+            
+            # Se a estratégia for Fixa (Letterbox/NoCrop), respeitar imediatamente
+            if current.crop_strategy in [CropStrategy.LETTERBOX, CropStrategy.NO_CROP]:
+                analyses[i].crop_center = target
+                stable_center = target
+                continue
 
-            # Média ponderada (mais peso no atual)
-            smooth_x = (prev_center[0] * 0.25 + curr_center[0] * 0.5 + next_center[0] * 0.25)
-            smooth_y = (prev_center[1] * 0.25 + curr_center[1] * 0.5 + next_center[1] * 0.25)
-
-            # Atualizar apenas se a estratégia permitir movimento
-            if analyses[i].crop_strategy not in [CropStrategy.LETTERBOX, CropStrategy.NO_CROP]:
-                analyses[i].crop_center = (smooth_x, smooth_y)
+            # Calcular distância da mudança
+            dx = target[0] - stable_center[0]
+            dy = target[1] - stable_center[1]
+            dist = np.sqrt(dx*dx + dy*dy)
+            
+            # DEADSTONE: Se moveu pouco (ex: cabeça balançando de leve falando), IGNORAR.
+            # Convertendo threshold relativo (0.05) para pixels base 1920
+            pixel_threshold = 1920 * self.deadzone_threshold 
+            
+            if dist < pixel_threshold:
+                # Mantém centro anterior (Câmera parada)
+                analyses[i].crop_center = stable_center
+            else:
+                # MOVER SUAVEMENTE (Lerp)
+                # alpha baixo = movimento lento (cinemático). alpha alto = robótico.
+                alpha = 0.1 # 10% do caminho por frame
+                
+                new_x = stable_center[0] + dx * alpha
+                new_y = stable_center[1] + dy * alpha
+                
+                analyses[i].crop_center = (new_x, new_y)
+                stable_center = (new_x, new_y)
 
         return analyses
 

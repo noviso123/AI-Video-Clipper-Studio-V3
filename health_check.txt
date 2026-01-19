@@ -1,0 +1,1 @@
+{"apis":{"local_llm":true,"local_transcription":true},"directories":{"exports":true,"temp":true},"local_mode":false,"python":"/var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/venv/bin/python","server":"online","status":"healthy","timestamp":"2026-01-18T19:39:38.685126","version":"3.0.0"}

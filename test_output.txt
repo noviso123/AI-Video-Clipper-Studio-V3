@@ -1,0 +1,140 @@
+============================================================
+🧪 TESTE V3 - CROP INTELIGENTE COM LETTERBOX
+============================================================
+✅ Vídeo de teste já existe: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/temp/test_video.mp4
+
+🎬 Inicializando VideoEditor...
+[32mINFO[0m | 23:04:11 | src.modules.editor |    ✅ Face Tracker inicializado com sucesso
+[32mINFO[0m |    ✅ Face Tracker inicializado com sucesso
+[32mINFO[0m | 23:04:11 | src.modules.subtitle_detector | 🔍 Subtitle Detector: Inicializado
+[32mINFO[0m | 🔍 Subtitle Detector: Inicializado
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer | 🔍 Frame Analyzer: Inicializado (Cinematic Mode)
+[32mINFO[0m | 🔍 Frame Analyzer: Inicializado (Cinematic Mode)
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer |    Face Detection: Ativo
+[32mINFO[0m |    Face Detection: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer | 🔍 Frame Analyzer: Inicializado (Cinematic Mode)
+[32mINFO[0m | 🔍 Frame Analyzer: Inicializado (Cinematic Mode)
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer |    Face Detection: Ativo
+[32mINFO[0m |    Face Detection: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer | 🔊 Audio Analyzer for Frames: Inicializado
+[32mINFO[0m | 🔊 Audio Analyzer for Frames: Inicializado
+[32mINFO[0m | 23:04:11 | src.modules.dynamic_processor | 🎬 Dynamic Video Processor: Inicializado
+[32mINFO[0m | 🎬 Dynamic Video Processor: Inicializado
+[32mINFO[0m | 23:04:11 | src.modules.dynamic_processor |    Resolução alvo: 1080x1920
+[32mINFO[0m |    Resolução alvo: 1080x1920
+[32mINFO[0m | 23:04:11 | src.modules.intelligent_cropper |    Face detector: Ativo
+[32mINFO[0m |    Face detector: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.intelligent_cropper | 🧠 Intelligent Cropper V2.0 inicializado
+[32mINFO[0m | 🧠 Intelligent Cropper V2.0 inicializado
+[32mINFO[0m | 23:04:11 | src.modules.intelligent_cropper |    Optical Flow: Ativo
+[32mINFO[0m |    Optical Flow: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.intelligent_cropper |    Velocity Prediction: Ativo
+[32mINFO[0m |    Velocity Prediction: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.intelligent_cropper |    Smooth Transitions: Ativo
+[32mINFO[0m |    Smooth Transitions: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.editor | 🎬 Video Editor inicializado (V4.0 - Frame a Frame)
+[32mINFO[0m | 🎬 Video Editor inicializado (V4.0 - Frame a Frame)
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Resolução alvo: 1080x1920
+[32mINFO[0m |    Resolução alvo: 1080x1920
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Face Tracking: Ativo
+[32mINFO[0m |    Face Tracking: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Detecção de Legendas: Ativo
+[32mINFO[0m |    Detecção de Legendas: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Análise Frame a Frame: Ativo
+[32mINFO[0m |    Análise Frame a Frame: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Processamento Dinâmico: Ativo
+[32mINFO[0m |    Processamento Dinâmico: Ativo
+[32mINFO[0m | 23:04:11 | src.modules.editor |    Cropping Inteligente: Ativo
+[32mINFO[0m |    Cropping Inteligente: Ativo
+
+============================================================
+🎬 TESTE 1: Modo AUTO (0-5s)
+============================================================
+[32mINFO[0m | 23:04:11 | src.modules.editor | ✂️  Cortando vídeo: 0.0s -> 5.0s (Modo: auto, Vibe: General)
+[32mINFO[0m | ✂️  Cortando vídeo: 0.0s -> 5.0s (Modo: auto, Vibe: General)
+[32mINFO[0m | 23:04:11 | src.modules.editor |    🎯 Usando processamento dinâmico frame a frame
+[32mINFO[0m |    🎯 Usando processamento dinâmico frame a frame
+[32mINFO[0m | 23:04:11 | src.modules.dynamic_processor | 🎬 Processando vídeo dinamicamente: test_video.mp4
+[32mINFO[0m | 🎬 Processando vídeo dinamicamente: test_video.mp4
+[32mINFO[0m | 23:04:11 | src.modules.dynamic_processor |    Duração: 5.0s
+[32mINFO[0m |    Duração: 5.0s
+[32mINFO[0m | 23:04:11 | src.modules.dynamic_processor |    Resolução: 1920x1080
+[32mINFO[0m |    Resolução: 1920x1080
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer | 🎬 Analisando vídeo frame a frame: test_video.mp4
+[32mINFO[0m | 🎬 Analisando vídeo frame a frame: test_video.mp4
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer |    Frames: 0 -> 150
+[32mINFO[0m |    Frames: 0 -> 150
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer |    Resolução: 1920x1080
+[32mINFO[0m |    Resolução: 1920x1080
+[32mINFO[0m | 23:04:11 | src.modules.frame_analyzer |    FPS: 30.0
+[32mINFO[0m |    FPS: 30.0
+[32mINFO[0m | 23:04:19 | src.modules.frame_analyzer |    ✅ 50 frames analisados
+[32mINFO[0m |    ✅ 50 frames analisados
+[32mINFO[0m | 23:04:19 | src.modules.frame_analyzer |    Tipos detectados: {'empty': 50}
+[32mINFO[0m |    Tipos detectados: {'empty': 50}
+[32mINFO[0m | 23:04:19 | src.modules.dynamic_processor |    Segmentos criados: 2
+[32mINFO[0m |    Segmentos criados: 2
+[32mINFO[0m | 23:04:19 | src.modules.dynamic_processor |    Processando segmento 1/2: center_crop
+[32mINFO[0m |    Processando segmento 1/2: center_crop
+[32mINFO[0m | 23:04:19 | src.modules.dynamic_processor |    Processando segmento 2/2: center_crop
+[32mINFO[0m |    Processando segmento 2/2: center_crop
+[32mINFO[0m | 23:04:19 | src.modules.dynamic_processor |    📝 Adicionando legendas via DynamicCaptions...
+[32mINFO[0m |    📝 Adicionando legendas via DynamicCaptions...
+[32mINFO[0m | 23:04:19 | src.modules.subtitle_detector | 🔍 Subtitle Detector: Inicializado
+[32mINFO[0m | 🔍 Subtitle Detector: Inicializado
+[32mINFO[0m | 23:04:19 | src.modules.captions | 📝 Dynamic Captions inicializado (estilo: karaoke_modern)
+[32mINFO[0m | 📝 Dynamic Captions inicializado (estilo: karaoke_modern)
+[32mINFO[0m | 23:04:19 | src.modules.captions |    Detecção de legendas existentes: Ativo
+[32mINFO[0m |    Detecção de legendas existentes: Ativo
+[32mINFO[0m | 23:04:19 | src.modules.captions | 📝 Criando legendas dinâmicas (estilo: karaoke_modern)
+[32mINFO[0m | 📝 Criando legendas dinâmicas (estilo: karaoke_modern)
+[32mINFO[0m | 23:04:19 | src.modules.captions |    Total de palavras: 3
+[32mINFO[0m |    Total de palavras: 3
+[32mINFO[0m | 23:04:19 | src.modules.captions |    Posição das legendas: bottom
+[32mINFO[0m |    Posição das legendas: bottom
+[32mINFO[0m | 23:04:20 | src.modules.captions | ✅ 2 legendas adicionadas
+[32mINFO[0m | ✅ 2 legendas adicionadas
+[32mINFO[0m | 23:04:52 | src.modules.dynamic_processor | ✅ Vídeo processado: clip_v3_auto.mp4
+[32mINFO[0m | ✅ Vídeo processado: clip_v3_auto.mp4
+✅ Clip 1 gerado com sucesso: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/exports_v3/clip_v3_auto.mp4
+
+============================================================
+🎬 TESTE 2: Modo LETTERBOX (5-10s)
+============================================================
+[32mINFO[0m | 23:04:52 | src.modules.editor | ✂️  Cortando vídeo: 5.0s -> 10.0s (Modo: letterbox, Vibe: General)
+[32mINFO[0m | ✂️  Cortando vídeo: 5.0s -> 10.0s (Modo: letterbox, Vibe: General)
+[32mINFO[0m | 23:04:52 | src.modules.subtitle_detector |    🔍 Analisando legendas existentes em: test_video.mp4
+[32mINFO[0m |    🔍 Analisando legendas existentes em: test_video.mp4
+[32mINFO[0m | 23:04:53 | src.modules.subtitle_detector |       Legendas detectadas: Não
+[32mINFO[0m |       Legendas detectadas: Não
+[32mINFO[0m | 23:04:53 | src.modules.editor |    📦 Aplicando letterbox
+[32mINFO[0m |    📦 Aplicando letterbox
+INFO | 🎨 Visual Polisher: Inicializado
+[32mINFO[0m | 23:05:00 | src.modules.editor | ✅ Clipe salvo: clip_v3_letterbox.mp4
+[32mINFO[0m | ✅ Clipe salvo: clip_v3_letterbox.mp4
+✅ Clip 2 gerado com sucesso: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/exports_v3/clip_v3_letterbox.mp4
+
+============================================================
+🎬 TESTE 3: Modo CENTER (10-15s)
+============================================================
+[32mINFO[0m | 23:05:00 | src.modules.editor | ✂️  Cortando vídeo: 10.0s -> 15.0s (Modo: center, Vibe: General)
+[32mINFO[0m | ✂️  Cortando vídeo: 10.0s -> 15.0s (Modo: center, Vibe: General)
+[32mINFO[0m | 23:05:00 | src.modules.subtitle_detector |    🔍 Analisando legendas existentes em: test_video.mp4
+[32mINFO[0m |    🔍 Analisando legendas existentes em: test_video.mp4
+[32mINFO[0m | 23:05:01 | src.modules.subtitle_detector |       Legendas detectadas: Não
+[32mINFO[0m |       Legendas detectadas: Não
+[32mINFO[0m | 23:05:01 | src.modules.editor |    🧠 Cropping INTELIGENTE (context-aware)
+[32mINFO[0m |    🧠 Cropping INTELIGENTE (context-aware)
+INFO | 🎨 Visual Polisher: Inicializado
+[32mINFO[0m | 23:05:18 | src.modules.editor | ✅ Clipe salvo: clip_v3_center.mp4
+[32mINFO[0m | ✅ Clipe salvo: clip_v3_center.mp4
+✅ Clip 3 gerado com sucesso: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/exports_v3/clip_v3_center.mp4
+
+============================================================
+📊 ARQUIVOS GERADOS:
+============================================================
+   clip_v3_auto.mp4: 87.0 KB
+   clip_v3_letterbox.mp4: 14.5 KB
+   clip_v3_center.mp4: 14.3 KB
+
+✅ Teste V3 concluído com SUCESSO! (Pelo menos 1 clipe gerado)

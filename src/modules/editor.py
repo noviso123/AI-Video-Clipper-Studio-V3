@@ -41,6 +41,12 @@ try:
 except ImportError:
     DYNAMIC_PROCESSOR_AVAILABLE = False
 
+try:
+    from .intelligent_cropper import IntelligentCropper, SceneContext
+    INTELLIGENT_CROPPER_AVAILABLE = True
+except ImportError:
+    INTELLIGENT_CROPPER_AVAILABLE = False
+
 
 class FaceTracker:
     """Classe para detecção e tracking de rostos em vídeos."""
@@ -139,12 +145,18 @@ class VideoEditor:
         if DYNAMIC_PROCESSOR_AVAILABLE:
             self.dynamic_processor = DynamicVideoProcessor()
 
+        # Inicializar cropper inteligente
+        self.intelligent_cropper = None
+        if INTELLIGENT_CROPPER_AVAILABLE:
+            self.intelligent_cropper = IntelligentCropper(self.target_width, self.target_height)
+
         logger.info(f"🎬 Video Editor inicializado (V4.0 - Frame a Frame)")
         logger.info(f"   Resolução alvo: {self.target_width}x{self.target_height}")
         logger.info(f"   Face Tracking: {'Ativo' if self.face_tracker.initialized else 'Inativo'}")
         logger.info(f"   Detecção de Legendas: {'Ativo' if self.subtitle_detector else 'Inativo'}")
         logger.info(f"   Análise Frame a Frame: {'Ativo' if self.frame_analyzer else 'Inativo'}")
         logger.info(f"   Processamento Dinâmico: {'Ativo' if self.dynamic_processor else 'Inativo'}")
+        logger.info(f"   Cropping Inteligente: {'Ativo' if self.intelligent_cropper else 'Inativo'}")
 
     def create_clip(
         self,
@@ -153,7 +165,8 @@ class VideoEditor:
         end_time: float,
         output_path: Path,
         crop_mode: str = 'auto',
-        vibe: str = 'General'
+        vibe: str = 'General',
+        transcription: List[Dict] = None
     ) -> Path:
         """
         Cria um clipe vertical (9:16) do vídeo.
@@ -165,6 +178,7 @@ class VideoEditor:
             output_path: Caminho para salvar o clipe
             crop_mode: 'auto', 'dynamic', 'face_tracking', 'letterbox', 'center'
             vibe: Vibe ou estilo detectado pelo orquestrador
+            transcription: Transcrição para legendas (opcional)
         """
         logger.info(f"✂️  Cortando vídeo: {start_time:.1f}s -> {end_time:.1f}s (Modo: {crop_mode}, Vibe: {vibe})")
 
@@ -173,7 +187,7 @@ class VideoEditor:
             if crop_mode in ['auto', 'dynamic'] and self.dynamic_processor:
                 logger.info("   🎯 Usando processamento dinâmico frame a frame")
                 return self.dynamic_processor.process_with_dynamic_crop(
-                    video_path, output_path, start_time, end_time
+                    video_path, output_path, start_time, end_time, transcription
                 )
 
             # Fallback para processamento tradicional
@@ -197,7 +211,18 @@ class VideoEditor:
     ) -> Path:
         """Processamento tradicional (fallback)."""
 
-        clip = VideoFileClip(str(video_path)).subclip(start_time, end_time)
+        clip_src = VideoFileClip(str(video_path))
+        duration = clip_src.duration
+        
+        # Clamp timestamps to avoid OOB errors (precision issues)
+        safe_start = max(0, start_time)
+        safe_end = min(duration - 0.05, end_time) # 50ms buffer
+        
+        if safe_end <= safe_start:
+             logger.error(f"   ⚠️ Tempo inválido após clamp: {safe_start} -> {safe_end} (Duration: {duration})")
+             return None
+
+        clip = clip_src.subclip(safe_start, safe_end)
         original_w, original_h = clip.size
 
         # Detectar legendas
@@ -215,12 +240,14 @@ class VideoEditor:
             crop_mode = self._determine_best_mode(subtitle_data, face_data)
             logger.info(f"   🤖 Modo automático selecionou: {crop_mode}")
 
-        # Aplicar crop
+        # Aplicar crop - PRIORIZAR face tracking / intelligent cropping
         if crop_mode == 'letterbox':
             final_clip = self._apply_letterbox(clip)
-        elif crop_mode == 'face_tracking' and face_data:
-            final_clip = self._apply_face_tracking(clip, face_data, subtitle_data)
+        elif self.intelligent_cropper or (crop_mode == 'face_tracking' and face_data):
+            # Usar intelligent cropping se disponível (ignora subtitle_data para priorizar dynamic crop)
+            final_clip = self._apply_face_tracking(clip, face_data, None)  # Pass None for subtitle_data to force face tracking
         else:
+            # Fallback para letterbox apenas se nada mais funcionar
             final_clip = self._apply_letterbox(clip)
 
         # Visual Polish
@@ -254,17 +281,17 @@ class VideoEditor:
     def _determine_best_mode(self, subtitle_data: Dict, face_data: Dict) -> str:
         """Determina o melhor modo de crop."""
 
-        # Se tem legendas, usar letterbox
+        # Prioridade 1: Se tem rostos detectados, SEMPRE usar face tracking (melhor para podcasts/talking heads)
+        if face_data and face_data.get('total_faces_detected', 0) > 0:
+            return 'face_tracking'
+
+        # Prioridade 2: Se tem legendas existentes, usar letterbox para preservá-las
         if subtitle_data and subtitle_data.get('has_subtitles'):
             if subtitle_data.get('confidence', 0) > 0.4:
                 return 'letterbox'
 
-        # Se tem muitos rostos, usar face tracking
-        if face_data and face_data.get('total_faces_detected', 0) > 5:
-            return 'face_tracking'
-
-        # Padrão: letterbox (mais seguro)
-        return 'letterbox'
+        # Padrão: face_tracking (mais engajante para redes sociais)
+        return 'face_tracking'
 
     def _apply_letterbox(self, clip: VideoFileClip) -> VideoFileClip:
         """Aplica letterbox preservando todo o conteúdo."""
@@ -309,45 +336,121 @@ class VideoEditor:
         face_data: Dict,
         subtitle_data: Dict = None
     ) -> VideoFileClip:
-        """Aplica crop com face tracking."""
+        """
+        Aplica crop INTELIGENTE frame-a-frame com análise de contexto.
+        
+        Detecta automaticamente:
+        - Quem está falando (single speaker)
+        - Múltiplas pessoas conversando (conversation)
+        - Objetos sendo mostrados (product showcase)
+        - Grupos de pessoas (group shot)
+        
+        Ajusta zoom e posição dinamicamente baseado no contexto.
+        """
 
-        # Se tem legendas, usar letterbox
+        # Se tem legendas existentes com alta confiança, usar letterbox
         if subtitle_data and subtitle_data.get('has_subtitles'):
-            if subtitle_data.get('confidence', 0) > 0.4:
+            if subtitle_data.get('confidence', 0) > 0.6:
                 return self._apply_letterbox(clip)
 
         original_w, original_h = clip.size
-        target_ratio = self.target_height / self.target_width
 
+        # Usar IntelligentCropper se disponível
+        if self.intelligent_cropper:
+            logger.info(f"   🧠 Cropping INTELIGENTE (context-aware)")
+            
+            # Resetar estado do cropper para novo clip
+            self.intelligent_cropper.reset()
+            
+            def make_frame_intelligent(get_frame, t):
+                """Processa cada frame com cropping inteligente."""
+                frame = get_frame(t)
+                
+                # Analisar frame e obter decisão de crop
+                decision = self.intelligent_cropper.analyze_frame(frame)
+                
+                # Aplicar crop baseado na decisão
+                result = self.intelligent_cropper.apply_crop(frame, decision)
+                
+                return result
+
+            # Aplicar transformação frame a frame
+            final_clip = clip.fl(make_frame_intelligent)
+            final_clip = final_clip.set_duration(clip.duration)
+            
+            if clip.audio:
+                final_clip = final_clip.set_audio(clip.audio)
+            
+            return final_clip
+        
+        # Fallback: face tracking simples
+        logger.info(f"   🎯 Face tracking DINÂMICO (frame-a-frame)")
+        
+        target_ratio = self.target_height / self.target_width
         crop_width = int(original_h / target_ratio)
         if crop_width > original_w:
             return self._apply_letterbox(clip)
 
         crop_height = original_h
 
-        # Determinar centro
-        if face_data.get('avg_center'):
-            center_x, center_y = face_data['avg_center']
-        else:
-            center_x = original_w / 2
-            center_y = original_h / 2
+        # Posição inicial baseada na análise prévia
+        initial_center_x = original_w / 2
+        if face_data and face_data.get('avg_center'):
+            initial_center_x = face_data['avg_center'][0]
 
-        # Garantir limites
-        center_x = max(crop_width / 2, min(center_x, original_w - crop_width / 2))
-        center_y = max(crop_height / 2, min(center_y, original_h - crop_height / 2))
+        # Estado para suavização (smooth tracking)
+        last_x = [initial_center_x]  # Mutable para closure
+        deadzone = 50  # Pixels de tolerância para reduzir jitter
 
-        logger.info(f"   🎯 Face tracking: centro em ({center_x:.0f}, {center_y:.0f})")
+        def make_frame_with_face_tracking(get_frame, t):
+            """Processa cada frame com face tracking dinâmico."""
+            frame = get_frame(t)
+            
+            # Detectar rosto neste frame
+            if self.face_tracker.initialized:
+                try:
+                    faces = self.face_tracker.detect_faces(frame)
+                    if faces:
+                        center = self.face_tracker.get_faces_center(faces)
+                        if center:
+                            target_x = center[0]
+                            
+                            # Aplicar deadzone para suavização
+                            if abs(target_x - last_x[0]) > deadzone:
+                                # Movimento suave (interpolação)
+                                last_x[0] = last_x[0] + (target_x - last_x[0]) * 0.3
+                except:
+                    pass  # Manter posição anterior se falhar
+            
+            # Calcular crop centrado no rosto
+            center_x = last_x[0]
+            
+            # Garantir limites
+            center_x = max(crop_width / 2, min(center_x, original_w - crop_width / 2))
+            
+            # Calcular coordenadas de crop
+            x1 = int(center_x - crop_width / 2)
+            x2 = int(center_x + crop_width / 2)
+            y1 = 0
+            y2 = crop_height
+            
+            # Aplicar crop
+            cropped_frame = frame[y1:y2, x1:x2]
+            
+            # Redimensionar para resolução alvo
+            import cv2
+            resized = cv2.resize(cropped_frame, (self.target_width, self.target_height))
+            
+            return resized
 
-        cropped = crop(
-            clip,
-            x_center=center_x,
-            y_center=center_y,
-            width=crop_width,
-            height=crop_height
-        )
-
-        resized = cropped.resize((self.target_width, self.target_height))
-        return resized
+        # Aplicar transformação frame a frame
+        final_clip = clip.fl(make_frame_with_face_tracking)
+        final_clip = final_clip.set_duration(clip.duration)
+        
+        if clip.audio:
+            final_clip = final_clip.set_audio(clip.audio)
+        
+        return final_clip
 
     def _analyze_faces_in_clip(
         self,

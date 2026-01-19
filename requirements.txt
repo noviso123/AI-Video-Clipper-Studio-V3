@@ -3,16 +3,25 @@
 # ===========================================
 
 # Core
+flask
+flask-cors
+markitdown
+crawl4ai
+playwright
+crewai
+langchain-openai
+langchain-ollama
 python-dotenv
 
 # Download de Vídeos
 yt-dlp>=2024.0.0
 
 # Transcrição
-openai-whisper
-whisperx
-openai>=1.0.0
-google-generativeai>=0.3.0
+# openai-whisper (Installed via git)
+# whisperx (Incompatible with Python 3.14)
+# openai>=1.0.0
+vosk
+# google-generativeai>=0.3.0
 
 # IA / ML
 transformers
@@ -20,7 +29,7 @@ torch
 sentencepiece
 
 # Processamento de Vídeo
-moviepy
+moviepy<2.0.0
 ffmpeg-python
 opencv-python
 Pillow
@@ -46,7 +55,10 @@ pytest
 pytest-cov
 
 # Voz / TTS
-edge-tts>=6.1.9
+# edge-tts>=6.1.9
+kokoro-onnx
+soundfile
+onnxruntime
 
 # Identidade Visual / Thumbnails
 rembg

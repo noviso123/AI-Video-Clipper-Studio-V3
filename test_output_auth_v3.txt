@@ -1,0 +1,163 @@
+nohup: ignorando entrada
+🕵️‍♂️ Testando Autenticação das Contas...
+
+🔍 Verificando TIKTOK...
+[32mINFO[0m | 00:42:48 | src.browsers.profile_manager | 🌐 Iniciando navegador para: tiktok
+[32mINFO[0m | 00:42:48 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/tiktok
+[32mINFO[0m | 00:42:48 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:42:51 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: Chrome failed to start: exited normally.
+  (session not created: DevToolsActivePort file doesn't exist)
+  (The process started from chrome location /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh is no longer running, so ChromeDriver is assuming that Chrome has crashed.); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x555ef77c11fa <unknown>
+#1 0x555ef72d1810 <unknown>
+#2 0x555ef7308ed8 <unknown>
+#3 0x555ef7304a36 <unknown>
+#4 0x555ef7350816 <unknown>
+#5 0x555ef734fe66 <unknown>
+#6 0x555ef7344323 <unknown>
+#7 0x555ef7312de0 <unknown>
+#8 0x555ef7313dbe <unknown>
+#9 0x555ef778d12b <unknown>
+#10 0x555ef77910c7 <unknown>
+#11 0x555ef777a6cc <unknown>
+#12 0x555ef7791c47 <unknown>
+#13 0x555ef775f67f <unknown>
+#14 0x555ef77b0288 <unknown>
+#15 0x555ef77b0450 <unknown>
+#16 0x555ef77c0076 <unknown>
+#17 0x7f41b58c5464 start_thread
+#18 0x7f41b59485ac __clone3
+
+⚠️ Erro ao verificar tiktok: Message: session not created: Chrome failed to start: exited normally.
+  (session not created: DevToolsActivePort file doesn't exist)
+  (The process started from chrome location /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh is no longer running, so ChromeDriver is assuming that Chrome has crashed.); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x555ef77c11fa <unknown>
+#1 0x555ef72d1810 <unknown>
+#2 0x555ef7308ed8 <unknown>
+#3 0x555ef7304a36 <unknown>
+#4 0x555ef7350816 <unknown>
+#5 0x555ef734fe66 <unknown>
+#6 0x555ef7344323 <unknown>
+#7 0x555ef7312de0 <unknown>
+#8 0x555ef7313dbe <unknown>
+#9 0x555ef778d12b <unknown>
+#10 0x555ef77910c7 <unknown>
+#11 0x555ef777a6cc <unknown>
+#12 0x555ef7791c47 <unknown>
+#13 0x555ef775f67f <unknown>
+#14 0x555ef77b0288 <unknown>
+#15 0x555ef77b0450 <unknown>
+#16 0x555ef77c0076 <unknown>
+#17 0x7f41b58c5464 start_thread
+#18 0x7f41b59485ac __clone3
+
+
+🔍 Verificando YOUTUBE...
+[32mINFO[0m | 00:42:51 | src.browsers.profile_manager | 🌐 Iniciando navegador para: youtube
+[32mINFO[0m | 00:42:51 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/youtube
+[32mINFO[0m | 00:42:51 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:42:53 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: Chrome failed to start: exited normally.
+  (session not created: DevToolsActivePort file doesn't exist)
+  (The process started from chrome location /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh is no longer running, so ChromeDriver is assuming that Chrome has crashed.); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x558bdbc671fa <unknown>
+#1 0x558bdb777810 <unknown>
+#2 0x558bdb7aeed8 <unknown>
+#3 0x558bdb7aaa36 <unknown>
+#4 0x558bdb7f6816 <unknown>
+#5 0x558bdb7f5e66 <unknown>
+#6 0x558bdb7ea323 <unknown>
+#7 0x558bdb7b8de0 <unknown>
+#8 0x558bdb7b9dbe <unknown>
+#9 0x558bdbc3312b <unknown>
+#10 0x558bdbc370c7 <unknown>
+#11 0x558bdbc206cc <unknown>
+#12 0x558bdbc37c47 <unknown>
+#13 0x558bdbc0567f <unknown>
+#14 0x558bdbc56288 <unknown>
+#15 0x558bdbc56450 <unknown>
+#16 0x558bdbc66076 <unknown>
+#17 0x7f8c4fb3c464 start_thread
+#18 0x7f8c4fbbf5ac __clone3
+
+⚠️ Erro ao verificar youtube: Message: session not created: Chrome failed to start: exited normally.
+  (session not created: DevToolsActivePort file doesn't exist)
+  (The process started from chrome location /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh is no longer running, so ChromeDriver is assuming that Chrome has crashed.); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x558bdbc671fa <unknown>
+#1 0x558bdb777810 <unknown>
+#2 0x558bdb7aeed8 <unknown>
+#3 0x558bdb7aaa36 <unknown>
+#4 0x558bdb7f6816 <unknown>
+#5 0x558bdb7f5e66 <unknown>
+#6 0x558bdb7ea323 <unknown>
+#7 0x558bdb7b8de0 <unknown>
+#8 0x558bdb7b9dbe <unknown>
+#9 0x558bdbc3312b <unknown>
+#10 0x558bdbc370c7 <unknown>
+#11 0x558bdbc206cc <unknown>
+#12 0x558bdbc37c47 <unknown>
+#13 0x558bdbc0567f <unknown>
+#14 0x558bdbc56288 <unknown>
+#15 0x558bdbc56450 <unknown>
+#16 0x558bdbc66076 <unknown>
+#17 0x7f8c4fb3c464 start_thread
+#18 0x7f8c4fbbf5ac __clone3
+
+
+🔍 Verificando INSTAGRAM...
+[32mINFO[0m | 00:42:53 | src.browsers.profile_manager | 🌐 Iniciando navegador para: instagram
+[32mINFO[0m | 00:42:53 | src.browsers.profile_manager |    Perfil: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/instagram
+[32mINFO[0m | 00:42:53 | src.browsers.profile_manager | 🔧 Usando Chrome Flatpak Wrapper: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh
+[31mERROR[0m | 00:42:56 | src.browsers.profile_manager | ❌ Erro ao iniciar driver: Message: session not created: This version of ChromeDriver only supports Chrome version 131
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x559b6ae241fa <unknown>
+#1 0x559b6a934810 <unknown>
+#2 0x559b6a972992 <unknown>
+#3 0x559b6a971885 <unknown>
+#4 0x559b6a96c273 <unknown>
+#5 0x559b6a967a36 <unknown>
+#6 0x559b6a9b3816 <unknown>
+#7 0x559b6a9b2e66 <unknown>
+#8 0x559b6a9a7323 <unknown>
+#9 0x559b6a975de0 <unknown>
+#10 0x559b6a976dbe <unknown>
+#11 0x559b6adf012b <unknown>
+#12 0x559b6adf40c7 <unknown>
+#13 0x559b6addd6cc <unknown>
+#14 0x559b6adf4c47 <unknown>
+#15 0x559b6adc267f <unknown>
+#16 0x559b6ae13288 <unknown>
+#17 0x559b6ae13450 <unknown>
+#18 0x559b6ae23076 <unknown>
+#19 0x7f982ba57464 start_thread
+#20 0x7f982bada5ac __clone3
+
+⚠️ Erro ao verificar instagram: Message: session not created: This version of ChromeDriver only supports Chrome version 131
+Current browser version is 144.0.7559.59 with binary path /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/chrome_wrapper.sh; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#sessionnotcreatedexception
+Stacktrace:
+#0 0x559b6ae241fa <unknown>
+#1 0x559b6a934810 <unknown>
+#2 0x559b6a972992 <unknown>
+#3 0x559b6a971885 <unknown>
+#4 0x559b6a96c273 <unknown>
+#5 0x559b6a967a36 <unknown>
+#6 0x559b6a9b3816 <unknown>
+#7 0x559b6a9b2e66 <unknown>
+#8 0x559b6a9a7323 <unknown>
+#9 0x559b6a975de0 <unknown>
+#10 0x559b6a976dbe <unknown>
+#11 0x559b6adf012b <unknown>
+#12 0x559b6adf40c7 <unknown>
+#13 0x559b6addd6cc <unknown>
+#14 0x559b6adf4c47 <unknown>
+#15 0x559b6adc267f <unknown>
+#16 0x559b6ae13288 <unknown>
+#17 0x559b6ae13450 <unknown>
+#18 0x559b6ae23076 <unknown>
+#19 0x7f982ba57464 start_thread
+#20 0x7f982bada5ac __clone3
+

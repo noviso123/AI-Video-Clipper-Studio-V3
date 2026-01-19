@@ -77,12 +77,20 @@ def test_v3():
     print("=" * 60)
 
     try:
+        # Mock Transcription
+        mock_transcription = [
+            {'start': 0.5, 'end': 1.5, 'text': "Olá mundo"},
+            {'start': 1.5, 'end': 2.5, 'text': "Isso é um teste"},
+            {'start': 3.0, 'end': 4.0, 'text': "De legendas"}
+        ]
+        
         clip1 = editor.create_clip(
             video_path,
             start_time=0,
             end_time=5,
             output_path=export_dir / "clip_v3_auto.mp4",
-            crop_mode='auto'
+            crop_mode='auto',
+            transcription=mock_transcription
         )
         if clip1 and clip1.exists():
              print(f"✅ Clip 1 gerado com sucesso: {clip1}")

@@ -12,22 +12,23 @@ logger = logging.getLogger(__name__)
 class HybridAI:
     """
     Gerenciador Híbrido de IA:
-    1. Executa análise Local (Primária/Baseline)
-    2. Tenta Gemini (Melhoria/Alternativa)
-    3. Tenta OpenAI (Alternativa final)
+    1. Analisa Localmente (Keyword Matching + Audio Analysis) - PRIORIDADE MÁXIMA
+    2. (Gemini e OpenAI removidos para suporte 100% offline)
     4. Mescla ou seleciona o melhor resultado
     """
 
     def __init__(self):
-        self.gemini_key = os.getenv("GEMINI_API_KEY")
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-
-        self.has_gemini = bool(self.gemini_key and "AIza" in self.gemini_key)
-        self.has_openai = bool(self.openai_key and "sk-" in self.openai_key)
-
-        # Cache de clientes para performance
-        self._gemini_model = None
+        # Modificando para garantir Offline
+        self.gemini_key = None
+        self.openai_key = None
+        self.has_gemini = False
+        self.has_openai = False
+        
+        # Clientes (Removidos)
+        self._gemini_configured = False
         self._openai_client = None
+        
+        logger.info("🧠 HybridAI: Modo 100% OFFLINE Ativado")
 
     def call(
         self,
@@ -104,4 +105,5 @@ class HybridAI:
             return local
 
         # Fallback final
-        return gemini or openai or local
+        # Forçar retorno local
+        return local

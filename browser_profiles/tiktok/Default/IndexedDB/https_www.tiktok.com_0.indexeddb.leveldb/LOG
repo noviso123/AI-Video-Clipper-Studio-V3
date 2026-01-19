@@ -1,0 +1,7 @@
+2026/01/19-00:33:40.178 23 Reusing MANIFEST /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/tiktok/Default/IndexedDB/https_www.tiktok.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/01/19-00:33:40.179 23 Recovering log #3
+2026/01/19-00:33:40.179 23 Reusing old log /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/browser_profiles/tiktok/Default/IndexedDB/https_www.tiktok.com_0.indexeddb.leveldb/000003.log 
+2026/01/19-00:33:45.245 25 Level-0 table #5: started
+2026/01/19-00:33:45.248 25 Level-0 table #5: 31807 bytes OK
+2026/01/19-00:33:45.251 25 Delete type=0 #3
+2026/01/19-00:33:45.251 25 Manual compaction at level-0 from '\x00\x04\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x05\x00\x00\x00' @ 0 : 0; will stop at (end)

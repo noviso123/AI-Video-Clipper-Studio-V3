@@ -21,6 +21,7 @@ from moviepy.video.fx.crop import crop
 from moviepy.video.fx.resize import resize
 from dataclasses import dataclass
 from .frame_analyzer import FrameAnalyzer, FrameAnalysis, CropStrategy, FrameType, AudioAnalyzerForFrames
+from .captions import DynamicCaptions
 from ..core.config import Config
 from ..core.logger import setup_logger
 
@@ -122,32 +123,38 @@ class DynamicVideoProcessor:
         # Processar cada segmento
         processed_clips = []
 
+
         for i, segment in enumerate(segments):
-            logger.info(f"   Processando segmento {i+1}/{len(segments)}: {segment.strategy.value}")
+            try:
+                logger.info(f"   Processando segmento {i+1}/{len(segments)}: {segment.strategy.value}")
 
-            # Extrair subclip
-            seg_start = segment.start_time - start_time
-            seg_end = segment.end_time - start_time
+                # Extrair subclip
+                seg_start = segment.start_time - start_time
+                seg_end = segment.end_time - start_time
 
-            if seg_end <= seg_start:
+                if seg_end <= seg_start:
+                    continue
+
+                subclip = clip.subclip(seg_start, seg_end)
+
+                # Aplicar processamento baseado na estratégia
+                processed = self._process_segment(
+                    subclip, segment, original_w, original_h
+                )
+
+                if processed is not None:
+                    processed_clips.append(processed)
+            except Exception as e:
+                logger.error(f"⚠️ Erro ao processar segmento {i+1}: {e}")
+                # Não abortar tudo, tentar continuar com próximos segmentos
                 continue
 
-            subclip = clip.subclip(seg_start, seg_end)
-
-            # Aplicar processamento baseado na estratégia
-            processed = self._process_segment(
-                subclip, segment, original_w, original_h
-            )
-
-            if processed is not None:
-                processed_clips.append(processed)
-
-        # Concatenar todos os segmentos
+        # Concatenar todos os segmentos (chain é mais rápido e seguro para tamanhos iguais)
         if not processed_clips:
             logger.error("   ❌ Nenhum segmento processado")
             return None
 
-        final_clip = concatenate_videoclips(processed_clips, method="compose")
+        final_clip = concatenate_videoclips(processed_clips, method="chain")
 
         # Adicionar legendas se necessário
         if add_captions and transcription:
@@ -164,6 +171,7 @@ class DynamicVideoProcessor:
             preset='medium',
             bitrate='5M',
             audio_bitrate='192k',
+            threads=4, # Acelerar encoding
             logger=None
         )
 
@@ -193,8 +201,8 @@ class DynamicVideoProcessor:
         segment_start = analyses[0].timestamp
         segment_centers = [analyses[0].crop_center]
         segment_sizes = [analyses[0].crop_size]
-        needs_subtitle = not analyses[0].has_subtitles
-        needs_narration = not analyses[0].has_voice
+        needs_subtitle = not getattr(analyses[0], 'has_subtitles', False)
+        needs_narration = not getattr(analyses[0], 'has_voice', False)
 
         for i in range(1, len(analyses)):
             analysis = analyses[i]
@@ -239,7 +247,29 @@ class DynamicVideoProcessor:
             needs_narration=needs_narration
         ))
 
-        return segments
+        # MERHE SHORT SEGMENTS (Anti-Flicker)
+        # Se um segmento for muito curto (< 1.0s), fundir com o anterior ou próximo
+        merged_segments = []
+        if segments:
+            current = segments[0]
+            for i in range(1, len(segments)):
+                next_seg = segments[i]
+                duration = current.end_time - current.start_time
+                
+                if duration < 1.0:
+                    # Fundir com próximo
+                    current.end_time = next_seg.end_time
+                    current.crop_centers.extend(next_seg.crop_centers)
+                    current.crop_sizes.extend(next_seg.crop_sizes)
+                    # Manter estratégia do maior (neste caso, o next provavelmente)
+                    if (next_seg.end_time - next_seg.start_time) > duration:
+                        current.strategy = next_seg.strategy
+                else:
+                    merged_segments.append(current)
+                    current = next_seg
+            merged_segments.append(current)
+
+        return merged_segments
 
     def _process_segment(
         self,
@@ -321,8 +351,14 @@ class DynamicVideoProcessor:
             return self._apply_letterbox(clip)
 
         # Calcular centro médio suavizado
-        avg_center_x = np.mean([c[0] for c in segment.crop_centers])
-        avg_center_y = np.mean([c[1] for c in segment.crop_centers])
+        if not segment.crop_centers:
+            return self._apply_letterbox(clip)
+            
+        avg_center_x = np.mean([c[0] for c in segment.crop_centers if isinstance(c, (list, tuple)) and len(c) >= 2])
+        avg_center_y = np.mean([c[1] for c in segment.crop_centers if isinstance(c, (list, tuple)) and len(c) >= 2])
+        
+        if np.isnan(avg_center_x) or np.isnan(avg_center_y):
+             return self._apply_letterbox(clip)
 
         # Calcular tamanho do crop
         target_ratio = self.target_height / self.target_width
@@ -333,9 +369,20 @@ class DynamicVideoProcessor:
 
         crop_height = original_h
 
+        # Calcular Golden Ratio Vertical (Olhos a 1/3 do topo, não no centro)
+        # O centro calculado pelo analyzer é o centro do rosto.
+        # Queremos que esse centro fique em ~35% da altura do vídeo final (cropped).
+        
+        # Centro do crop (onde a câmera aponta)
+        # Se queremos o rosto em 35% da tela, o centro da câmera deve estar abaixo do rosto.
+        # câmera_y = rosto_y + (0.15 * crop_height)  -> rosto fica um pouco acima do meio
+        
+        offset_y = crop_height * 0.15
+        center_y = avg_center_y + offset_y
+        
         # Garantir limites
         center_x = max(crop_width / 2, min(avg_center_x, original_w - crop_width / 2))
-        center_y = max(crop_height / 2, min(avg_center_y, original_h - crop_height / 2))
+        center_y = max(crop_height / 2, min(center_y, original_h - crop_height / 2))
 
         # Aplicar crop
         cropped = crop(
@@ -404,64 +451,50 @@ class DynamicVideoProcessor:
         transcription: List[Dict],
         analyses: List[FrameAnalysis]
     ) -> VideoFileClip:
-        """Adiciona legendas de forma inteligente."""
-
-        if not transcription:
+        """Adiciona legendas usando DynamicCaptions."""
+        
+        logger.info("   📝 Adicionando legendas via DynamicCaptions...")
+        try:
+             # Converter transcrição de dict para formato compatível se necessário
+             # DynamicCaptions espera lista de palavras com timestamps.
+             # Se 'transcription' for segmentos (frases), precisamos adaptar ou o DynamicCaptions aceita?
+             # Captions.py espera 'words'.
+             
+             # Se a transcrição já tem 'words', ótimo. Se não, é um problema.
+             # Assumindo que o transcritor retorna segmentos com palavras.
+             
+             # Vamos criar uma instância de DynamicCaptions
+             captions_gen = DynamicCaptions(style='karaoke_modern')
+             
+             # Precisamos achatar os segmentos em palavras?
+             all_words = []
+             for seg in transcription:
+                 if 'words' in seg:
+                     all_words.extend(seg['words'])
+                 else:
+                     # Fallback feio: criar "palavra" que é a frase toda
+                     all_words.append({
+                         'word': seg.get('text', ''),
+                         'start': seg.get('start', 0),
+                         'end': seg.get('end', 0)
+                     })
+            
+             return captions_gen.create_captions(
+                 clip,
+                 all_words,
+                 position='auto'
+             )
+        except Exception as e:
+            logger.error(f"❌ Erro ao adicionar legendas: {e}")
             return clip
-
-        caption_clips = [clip]
-
-        for segment in transcription:
-            start = segment.get('start', 0)
-            end = segment.get('end', start + 1)
-            text = segment.get('text', '').strip()
-
-            if not text:
-                continue
-
-            # Verificar se já tem legenda neste momento
-            has_existing = False
-            for analysis in analyses:
-                if start <= analysis.timestamp <= end:
-                    if analysis.has_subtitles:
-                        has_existing = True
-                        break
-
-            if has_existing:
-                continue
-
-            # Criar legenda
-            try:
-                txt_clip = TextClip(
-                    text,
-                    fontsize=50,
-                    color='white',
-                    font='Arial-Bold',
-                    stroke_color='black',
-                    stroke_width=2,
-                    method='caption',
-                    size=(self.target_width - 100, None)
-                )
-
-                txt_clip = txt_clip.set_position(('center', self.target_height - 200))
-                txt_clip = txt_clip.set_start(start)
-                txt_clip = txt_clip.set_duration(end - start)
-
-                caption_clips.append(txt_clip)
-            except:
-                pass
-
-        if len(caption_clips) > 1:
-            return CompositeVideoClip(caption_clips)
-
-        return clip
 
     def process_with_dynamic_crop(
         self,
         video_path: Path,
         output_path: Path,
         start_time: float,
-        end_time: float
+        end_time: float,
+        transcription: List[Dict] = None
     ) -> Path:
         """
         Processa vídeo com crop dinâmico frame a frame.
@@ -472,7 +505,8 @@ class DynamicVideoProcessor:
             output_path,
             start_time,
             end_time,
-            add_captions=False,
+            transcription=transcription,
+            add_captions=(transcription is not None),
             add_narration=False
         )
 

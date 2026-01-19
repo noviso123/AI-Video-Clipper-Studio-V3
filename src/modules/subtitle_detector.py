@@ -195,7 +195,11 @@ class SubtitleDetector:
         max_score = region_scores[max_region]
         
         # Determinar se há legendas
-        has_subtitles = max_score > 0.5
+        # AUMENTADO threshold para reduzir falsos positivos (logos, gráficos)
+        # Precisa de score alto E múltiplas detecções
+        min_detections = 3
+        total_detections = len(detections.get(max_region, []))
+        has_subtitles = max_score > 0.85 and total_detections >= min_detections
         
         # Calcular região de legenda em pixels
         subtitle_region = None

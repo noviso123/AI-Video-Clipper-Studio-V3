@@ -5,7 +5,19 @@ Usa Crawl4AI para capturar conteúdo de URLs e transformar em Markdown pronto pa
 import os
 import asyncio
 from typing import Optional
-from crawl4ai import AsyncWebCrawler
+try:
+    from crawl4ai import AsyncWebCrawler
+except ImportError:
+    class AsyncWebCrawler:
+        def __init__(self): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def arun(self, url):
+            class Result:
+                success = False
+                error_message = "Crawl4AI module not installed (Python 3.14 / System Dependencies issue)"
+                markdown = ""
+            return Result()
 from ..core.logger import setup_logger
 
 logger = setup_logger(__name__)

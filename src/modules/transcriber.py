@@ -163,28 +163,44 @@ class AudioTranscriber:
                 pass
 
         logger.info("   Convertendo para WAV 16kHz...")
+        print(f"[DEBUG] Starting WAV conversion: {audio_path} -> {wav_path}", flush=True)
 
         try:
             ffmpeg_exe = self._get_ffmpeg_path()
-            result = subprocess.run([
+            print(f"[DEBUG] FFmpeg path: {ffmpeg_exe}", flush=True)
+            
+            cmd = [
                 ffmpeg_exe, '-y', '-i', str(audio_path),
                 '-ar', '16000', '-ac', '1',
                 '-sample_fmt', 's16',
                 '-f', 'wav', str(wav_path)
-            ], capture_output=True, timeout=600)
+            ]
+            print(f"[DEBUG] FFmpeg command: {' '.join(cmd)}", flush=True)
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                timeout=600
+            )
+            print(f"[DEBUG] FFmpeg return code: {result.returncode}", flush=True)
 
             if result.returncode == 0 and wav_path.exists():
                 logger.info("   ✅ Conversão concluída")
+                print(f"[DEBUG] WAV file created: {wav_path.exists()}, size: {wav_path.stat().st_size if wav_path.exists() else 0}", flush=True)
                 return wav_path
             else:
                 error_msg = result.stderr.decode() if result.stderr else "Erro desconhecido"
+                print(f"[DEBUG] FFmpeg stderr: {error_msg[:500]}", flush=True)
                 logger.warning(f"   FFmpeg erro: {error_msg[:200]}")
         except subprocess.TimeoutExpired:
+            print("[DEBUG] FFmpeg timeout!", flush=True)
             logger.error("   Timeout na conversão")
         except Exception as e:
+            print(f"[DEBUG] FFmpeg exception: {type(e).__name__}: {e}", flush=True)
             logger.error(f"   Erro crítico na conversão: {e}")
 
         # Se falhou, tentar usar original (provavelmente falhará no Vosk se não for WAV)
+        print("[DEBUG] WAV conversion FAILED, returning original path", flush=True)
         return audio_path
 
     def _process_audio(self, wav_path: Path) -> List[Dict]:
@@ -252,7 +268,8 @@ class AudioTranscriber:
                         segments.append({
                             'start': round(start, 2),
                             'end': round(end, 2),
-                            'text': text
+                            'text': text,
+                            'words': words if 'result' in result and result['result'] else []
                         })
 
                         current_time = end
@@ -274,7 +291,8 @@ class AudioTranscriber:
                 segments.append({
                     'start': round(start, 2),
                     'end': round(end, 2),
-                    'text': text
+                    'text': text,
+                    'words': words if 'result' in final and final['result'] else []
                 })
 
         wf.close()
@@ -320,21 +338,32 @@ class AudioTranscriber:
         logger.info(f"💾 JSON exportado: {output_path.name}")
 
     def get_words_in_range(self, segments: List[Dict], start: float, end: float) -> List[Dict]:
-        """Extrai texto em um intervalo de tempo"""
+        """Extrai texto em um intervalo de tempo (Word-Level)"""
         words = []
         for seg in segments:
             if seg['end'] < start or seg['start'] > end:
                 continue
 
-            # Segmento está no intervalo
-            overlap_start = max(seg['start'], start)
-            overlap_end = min(seg['end'], end)
+            # Se o segmento tem palavras individuais (Vosk Modificado), use-as
+            if 'words' in seg:
+                for w in seg['words']:
+                    # Verificar se a palavra está no range (com tolerância)
+                    if w['end'] >= start and w['start'] <= end:
+                        words.append({
+                            'word': w['word'],
+                            'start': w['start'],
+                            'end': w['end']
+                        })
+            else:
+                # Fallback para segmento inteiro se não tiver palavras
+                overlap_start = max(seg['start'], start)
+                overlap_end = min(seg['end'], end)
 
-            if overlap_end > overlap_start:
-                words.append({
-                    'word': seg['text'],
-                    'start': seg['start'],
-                    'end': seg['end']
-                })
+                if overlap_end > overlap_start:
+                    words.append({
+                        'word': seg['text'],
+                        'start': seg['start'],
+                        'end': seg['end']
+                    })
 
         return words

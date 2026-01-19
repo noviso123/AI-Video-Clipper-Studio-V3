@@ -337,6 +337,38 @@ class VoiceNarrator:
 
         return False
 
+    def generate_intro(self, text: str, output_path: Path, voice: str = "am_michael") -> bool:
+        """
+        Gera uma introdução curta para o vídeo usando Kokoro TTS.
+        
+        Args:
+            text: Texto da intro (ex: "Assista até o final!")
+            output_path: Caminho para salvar o arquivo de áudio
+            voice: Voz a usar (am_michael, af_bella, etc.)
+        
+        Returns:
+            True se gerado com sucesso, False caso contrário
+        """
+        try:
+            if not self.has_kokoro:
+                logger.warning("Kokoro TTS não disponível para gerar intro")
+                return False
+            
+            # Normalizar texto
+            clean_text = self._normalize_text(text)
+            
+            # Gerar áudio
+            success = self._generate_kokoro(clean_text, str(output_path), voice=voice)
+            
+            if success:
+                logger.info(f"   ✅ Intro gerada: {Path(output_path).name}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar intro: {e}")
+            return False
+
 # Singleton
 narrator = None
 def get_narrator() -> VoiceNarrator:

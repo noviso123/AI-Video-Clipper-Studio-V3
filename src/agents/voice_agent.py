@@ -1,70 +1,53 @@
 """
-Agente de Voz (Fase 17)
-Gera narrações usando Edge-TTS (Gratuito) ou ElevenLabs (Premium).
+Agente de Voz (Offline Wrapper)
+Redireciona para o VoiceNarrator (Kokoro TTS)
 """
-import asyncio
 import logging
 from pathlib import Path
 from typing import Optional, List
-import edge_tts
+from ..modules.narrator import get_narrator
 
 logger = logging.getLogger(__name__)
 
 class VoiceAgent:
-    """
-    Gerencia a síntese de voz para o vídeo.
-    """
-
-    # Vozes recomendadas do Edge-TTS (Português)
-    VOICES = {
-        'male': 'pt-BR-AntonioNeural',
-        'female': 'pt-BR-FranciscaNeural'
-    }
+    """Wrapper para o sistema de narração offline"""
 
     def __init__(self):
-        logger.info("🎙️ Agente de Voz: Inicializado (Backend: Edge-TTS)")
-
-    async def _generate_audio_async(self, text: str, voice: str, output_path: Path) -> bool:
-        """Gera áudio assincronamente"""
-        try:
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(str(output_path))
-            return True
-        except Exception as e:
-            logger.error(f"❌ Erro na geração de voz: {e}")
-            return False
+        logger.info("🎙️ Agente de Voz: Inicializado (Backend: Kokoro Offline)")
+        self.narrator = get_narrator()
 
     def generate_narration(self, text: str, output_path: Path, gender: str = 'male') -> Optional[Path]:
-        """
-        Gera um arquivo de áudio com a narração.
-
-        Args:
-            text: Texto para narrar
-            output_path: Caminho para salvar o mp3
-            gender: 'male' ou 'female'
-
-        Returns:
-            Path do arquivo gerado ou None se falhar
-        """
-        voice = self.VOICES.get(gender, self.VOICES['male'])
-        logger.info(f"🎙️ Gerando narração ({voice}): '{text[:30]}...'")
-
+        """Gera narração usando Kokoro"""
+        
+        # Mapear gênero para voz do Kokoro
+        voice_map = {
+            'male': 'am_michael',
+            'female': 'af_bella'
+        }
+        voice = voice_map.get(gender, 'am_michael')
+        
+        # Como o narrator.generate_narration usa "neutral" ou config interna, 
+        # vamos usar o método interno _generate_kokoro se quisermos forçar uma voz específica,
+        # ou usar a API pública. A API pública é mais segura.
+        
+        # Se o narrador já tem uma voz customizada, ele vai usar ela independente do gênero pedido aqui.
+        # Se não, ele usa a neutral. Vamos tentar forçar o gênero se não tiver custom.
+        
         try:
-            # Executar função async em contexto sync
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            success = loop.run_until_complete(self._generate_audio_async(text, voice, output_path))
-            loop.close()
-
+            if self.narrator.has_custom_voice:
+                success = self.narrator.generate_narration(text, output_path)
+            else:
+                # Acesso direto ao método interno para escolher voz específica do Kokoro
+                success = self.narrator._generate_kokoro(text, str(output_path), voice=voice)
+                
             if success:
-                logger.info(f"   ✅ Áudio salvo: {output_path.name}")
+                logger.info(f"   ✅ Áudio salvo (Kokoro): {output_path.name}")
                 return output_path
             return None
-
+            
         except Exception as e:
-            logger.error(f"❌ Falha fatal no Voice Agent: {e}")
+            logger.error(f"❌ Erro na geração de voz: {e}")
             return None
 
     def get_available_voices(self) -> List[str]:
-        """Retorna lista de vozes disponíveis no sistema"""
-        return list(self.VOICES.values())
+        return list(self.narrator.VOICES.keys())

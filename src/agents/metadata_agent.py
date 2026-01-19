@@ -18,7 +18,8 @@ class MetadataAgent:
             logger.info("📈 Metadata Agent: Inicializado")
         else:
             self.client = None
-            logger.warning("📈 Metadata Agent: OFFLINE (Sem API Key)")
+            # Silenciado - modo offline é o comportamento padrão
+            logger.debug("📈 Metadata Agent: Modo Local")
 
     def generate_metadata(self, transcript: str, vibe: str) -> dict:
         """

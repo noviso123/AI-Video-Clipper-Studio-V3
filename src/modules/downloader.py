@@ -18,6 +18,11 @@ class VideoDownloader:
     def __init__(self):
         self.temp_dir = Config.TEMP_DIR
         self.temp_dir.mkdir(exist_ok=True, parents=True)
+        # Ensure local Node.js is in PATH
+        node_bin = Path(os.getcwd()) / "bin" / "node" / "bin"
+        if node_bin.exists():
+            os.environ["PATH"] = str(node_bin) + os.pathsep + os.environ["PATH"]
+            logger.info(f"🔧 Node.js Path adicionado: {node_bin}")
 
     def _get_ffmpeg_path(self) -> Optional[str]:
         try:
@@ -47,14 +52,26 @@ class VideoDownloader:
 
         # Opções do yt-dlp
         ydl_opts = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': 'bestvideo[height<=1080][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': str(video_path.with_suffix('')),  # Sem extensão, yt-dlp adiciona
             'quiet': not Config.DEBUG_MODE,
             'no_warnings': True,
             'extract_flat': False,
             'nocheckcertificate': True,
             'ignoreerrors': True,
+            'extract_flat': False,
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
         }
+
+        # Adicionar runtime de JS se disponível localmente
+        node_path = Path(os.getcwd()) / "bin" / "node" / "bin" / "node"
+        if node_path.exists():
+            # Formato correto para yt-dlp >= 2025.01: Dict[str, Dict]
+            ydl_opts['js_runtimes'] = {
+                'node': {'executable': str(node_path)}
+            }
+            logger.info(f"⚡ Usando JS Runtime explícito: {node_path}")
 
         if ffmpeg_path:
             ydl_opts['ffmpeg_location'] = ffmpeg_path
@@ -66,9 +83,9 @@ class VideoDownloader:
                 info = ydl.extract_info(url, download=True)
 
                 metadata = {
-                    'title': info.get('title', 'Unknown'),
+                    'title': info.get('title') or info.get('alt_title') or 'Unknown Title',
                     'duration': info.get('duration', 0),
-                    'uploader': info.get('uploader', 'Unknown'),
+                    'uploader': info.get('uploader') or info.get('creator') or info.get('user') or 'Unknown Platform',
                     'description': info.get('description', ''),
                     'url': url,
                     'video_id': video_id
@@ -121,9 +138,8 @@ class VideoDownloader:
             raise
 
     def _validate_url(self, url: str) -> bool:
-        """Valida se a URL é de um vídeo do YouTube válido"""
-        valid_domains = ['youtube.com', 'youtu.be', 'www.youtube.com']
-        return any(domain in url for domain in valid_domains)
+        """Valida se a URL é suportada (qualquer http/https)"""
+        return url.startswith("http")
 
     def _generate_id(self, url: str) -> str:
         """Gera ID único baseado na URL"""

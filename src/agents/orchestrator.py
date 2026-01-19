@@ -27,7 +27,8 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.error(f"❌ Erro ao conectar OpenAI: {e}")
         else:
-            logger.warning("⚠️ Agente Orquestrador: MODO OFFLINE (Sem API Key)")
+            # Silenciado - modo offline é o comportamento padrão
+            logger.debug("🧠 Agente Orquestrador: Modo Local (Sem OpenAI)")
 
     def plan_video(self, transcription_text: str, duration: float, user_preferences: Optional[Dict] = None) -> Dict[str, Any]:
         """

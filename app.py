@@ -108,9 +108,8 @@ def health_check():
         "server": "online",
         "timestamp": datetime.now().isoformat(),
         "apis": {
-            "openai": bool(Config.OPENAI_API_KEY),
-            "gemini": bool(Config.GEMINI_API_KEY),
-            "pexels": bool(Config.PEXELS_API_KEY)
+            "local_llm": True,
+            "local_transcription": True
         },
         "local_mode": getattr(Config, 'LOCAL_MODE', True),
         "directories": {
@@ -193,7 +192,16 @@ def browse_file():
 # =====================
 @app.route('/exports/<path:filename>')
 def serve_exports(filename):
-    """Serve arquivos da pasta exports"""
+    """Serve arquivos da pasta exports com MIME types corretos"""
+    # Determinar MIME type para vídeos
+    if filename.endswith('.mp4'):
+        return send_from_directory(EXPORTS_DIR, filename, mimetype='video/mp4')
+    elif filename.endswith('.webm'):
+        return send_from_directory(EXPORTS_DIR, filename, mimetype='video/webm')
+    elif filename.endswith('.jpg') or filename.endswith('.jpeg'):
+        return send_from_directory(EXPORTS_DIR, filename, mimetype='image/jpeg')
+    elif filename.endswith('.png'):
+        return send_from_directory(EXPORTS_DIR, filename, mimetype='image/png')
     return send_from_directory(EXPORTS_DIR, filename)
 
 
@@ -452,14 +460,25 @@ def run_clipper():
         '--clips', str(data.get('clips', 3)),
         '--min-duration', str(data.get('min_duration', 30)),
         '--max-duration', str(data.get('max_duration', 60)),
-        '--whisper-model', data.get('whisper_model', 'tiny'),
-        '--captions',
-        '--broll',
-        '--variants',
-        '--critic'
+        '--whisper-model', data.get('whisper_model', 'tiny')
     ])
 
+    if data.get('captions', True):
+        cmd.append('--captions')
+    
+    if data.get('broll', True):
+        cmd.append('--broll')
+        
+    if data.get('critic', True):
+        cmd.append('--critic')
+
+    # Variants (always off by default unless specified)
+    if data.get('variants', False):
+        cmd.append('--variants')
+
     try:
+        # Ensure subprocess inherits full environment (especially PATH for ffmpeg)
+        env = os.environ.copy()
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -467,7 +486,8 @@ def run_clipper():
             text=True,
             encoding='utf-8',
             bufsize=1,
-            cwd=BASE_DIR
+            cwd=BASE_DIR,
+            env=env
         )
 
         with process_lock:
@@ -980,7 +1000,7 @@ if __name__ == '__main__':
     print(f"📁 Temp: {TEMP_DIR}")
     print(f"📁 Exports: {EXPORTS_DIR}")
     print("=" * 50)
-    print("🌐 Servidor: http://127.0.0.1:5000")
+    print("🌐 Servidor: http://127.0.0.1:5005")
     print("=" * 50)
 
-    app.run(debug=True, port=5000, threaded=True, host='0.0.0.0')
+    app.run(debug=False, port=5005, threaded=True, host='0.0.0.0')

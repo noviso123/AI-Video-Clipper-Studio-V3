@@ -40,33 +40,51 @@ class DynamicCaptions:
             'method': 'caption',
             'align': 'center'
         },
-        'mr_beast': {
+        'modern': {
+            'fontsize': 75,
+            'font': 'Roboto-Bold', 
+            'color': '#FFFFFF', # Branco
+            'stroke_color': '#000000', # Preto
+            'stroke_width': 4,
+            'highlight_color': '#00FF00', # Verde Neon
+            'highlight_stroke': '#000000',
+            'method': 'caption',
+            'align': 'center'
+        },
+        'neon': {
             'fontsize': 80,
             'font': 'Impact',
-            'color': 'white',
-            'stroke_color': 'black',
+            'color': '#00FFFF', # Ciano
+            'stroke_color': '#000000',
             'stroke_width': 4,
-            'method': 'caption',
-            'align': 'center'
-        },
-        'minimal': {
-            'fontsize': 60,
-            'font': 'Arial',
-            'color': 'white',
-            'stroke_color': 'black',
-            'stroke_width': 2,
-            'method': 'caption',
-            'align': 'center'
-        },
-        'tiktok': {
-            'fontsize': 65,
-            'font': 'Arial-Bold',
-            'color': 'white',
-            'stroke_color': 'black',
-            'stroke_width': 3,
+            'highlight_color': '#FF00FF', # Magenta
+            'highlight_stroke': '#FFFFFF',
             'method': 'caption',
             'align': 'center',
-            'bg_color': 'rgba(0,0,0,0.5)'
+            'shadow_color': 'black',
+            'shadow_offset': (5, 5)
+        },
+        'bold_pro': {
+            'fontsize': 65,
+            'font': 'Verdana-Bold',
+            'color': '#FFD700', # Ouro
+            'stroke_color': '#000000',
+            'stroke_width': 2,
+            'method': 'caption',
+            'align': 'center',
+            'bg_color': 'rgba(0,0,0,0.6)' # Fundo semi-transparente
+        },
+        'karaoke_modern': {
+            'fontsize': 60,                # Tamanho equilibrado
+            'font': 'Arial-Bold',          # Fonte limpa e universal
+            'color': '#FFFFFF',            # Branco puro (padrão TV)
+            'stroke_color': '#000000',     # Stroke preto
+            'stroke_width': 3,             # Contraste alto
+            'highlight_color': '#FFD700',  # Ouro sutil para palavra atual (Karaokê)
+            'highlight_stroke': '#000000', 
+            'method': 'caption',
+            'align': 'center',
+            'uppercase': False             # Manter case original (mais formal)
         }
     }
     
@@ -76,7 +94,7 @@ class DynamicCaptions:
         'upper': 0.25,
         'center': 0.50,
         'lower': 0.65,
-        'bottom': 0.82
+        'bottom': 0.75  # AUMENTADO MARGEM DE SEGURANÇA (era 0.82). Evita sobrepor UI do TikTok.
     }
 
     def __init__(self, style: str = 'hormozi'):
@@ -134,17 +152,17 @@ class DynamicCaptions:
             # Criar clips de texto para cada palavra
             text_clips = []
 
-            for word_data in words:
-                text_clip = self._create_word_clip(
-                    word_data['word'],
-                    word_data['start'],
-                    word_data['end'],
+            # Agrupar palavras em frases curtas (Smart Grouping)
+            grouped_words = self._group_words(words, max_chars=25, max_duration=3.0)
+            
+            for group in grouped_words:
+                # Usar nova lógica de Karaoke (PIL-based para alinhamento perfeito)
+                karaoke_clips = self._create_karaoke_group(
+                    group,
                     video_clip.size,
                     actual_position
                 )
-
-                if text_clip:
-                    text_clips.append(text_clip)
+                text_clips.extend(karaoke_clips)
 
             if not text_clips:
                 logger.warning("   Nenhum clip de texto criado")
@@ -221,15 +239,24 @@ class DynamicCaptions:
             TextClip ou None se houver erro
         """
         try:
+            # Lógica de Highlight (se a palavra for chave)
+            if word.lower() in ['dinheiro', 'sucesso', 'agora', 'atenção', 'segredo', 'você', 'eu', 'nós']:
+                 color = self.style.get('highlight_color', self.style['color'])
+                 stroke_color = self.style.get('highlight_stroke', self.style['stroke_color'])
+            else:
+                 color = self.style['color']
+                 stroke_color = self.style['stroke_color']
+
             # Criar texto
             txt_clip = TextClip(
                 word,
                 fontsize=self.style['fontsize'],
                 font=self.style['font'],
-                color=self.style['color'],
-                stroke_color=self.style['stroke_color'],
+                color=color,
+                stroke_color=stroke_color,
                 stroke_width=self.style['stroke_width'],
-                method=self.style['method']
+                method=self.style['method'],
+                size=(video_size[0] * 0.9, None) if len(word) > 10 else None # Wrap se for frase longa
             )
 
             # Definir duração e posição temporal
@@ -242,10 +269,14 @@ class DynamicCaptions:
 
             txt_clip = txt_clip.set_position(('center', y_pos))
 
-            # Adicionar fade in/out suave (0.1s)
-            fade_duration = min(0.1, (end - start) / 2)
-            txt_clip = fadein(txt_clip, fade_duration)
-            txt_clip = fadeout(txt_clip, fade_duration)
+            # Adicionar animação de entrada (Pop ou Fade)
+            if self.style_name in ['modern', 'neon']:
+                 # Pop effect (scale up) - Simulado com resize (custoso) ou apenas fade rapido
+                 txt_clip = fadein(txt_clip, 0.1)
+            else:
+                 fade_duration = min(0.1, (end - start) / 2)
+                 txt_clip = fadein(txt_clip, fade_duration)
+                 txt_clip = fadeout(txt_clip, fade_duration)
 
             return txt_clip
 
@@ -318,6 +349,142 @@ class DynamicCaptions:
         except Exception as e:
             logger.error(f"   ❌ Falha fatal no fallback PIL: {e}")
             return None
+
+    def _create_karaoke_group(self, group: Dict, video_size: Tuple[int, int], position: str) -> List[VideoClip]:
+        """
+        Cria UM clip por frase usando make_frame para renderizar Karaokê dinamicamente.
+        Isso evita criar centenas de ImageClips que travam o MoviePy.
+        """
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            from moviepy.editor import VideoClip
+            
+            words = group['words']
+            if not words: return []
+
+            start_time = group['start']
+            end_time = group['end']
+            duration = end_time - start_time
+            
+            # 1. Configurar Fonte e Dimensões (Calculados uma vez)
+            fontsize = self.style['fontsize']
+            font = self._get_pil_font(fontsize)
+            
+            video_w, video_h = video_size
+            img_w, img_h = video_w, int(video_h * 0.25) # Área de texto um pouco maior
+            
+            # Posição Y
+            y_pct = self.POSITIONS.get(position, self.POSITIONS['bottom'])
+            y_pos_video = video_h * y_pct
+            
+            full_text = group['text']
+            
+            # Calcular geometria (uma vez)
+            draw_temp = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+            total_text_w = draw_temp.textlength(full_text, font=font)
+            start_x = (img_w - total_text_w) // 2
+            center_y = img_h // 2
+            
+            # Cores
+            base_color = self.style['color']
+            stroke_color = self.style['stroke_color']
+            stroke_width = self.style.get('stroke_width', 2)
+            highlight_color = self.style.get('highlight_color', '#00FF00')
+            highlight_stroke = self.style.get('highlight_stroke', stroke_color) # Stroke do highlight
+
+            # Pré-calcular posições das palavras para não recalcular a cada frame
+            word_positions = []
+            curr_x = start_x
+            space_w = draw_temp.textlength(" ", font=font)
+            
+            for w in words:
+                w_len = draw_temp.textlength(w['word'], font=font)
+                word_positions.append({
+                    'word': w['word'],
+                    'x': curr_x,
+                    'width': w_len,
+                    'start_rel': w['start'] - start_time,
+                    'end_rel': w['end'] - start_time
+                })
+                curr_x += w_len + space_w
+
+            # FUNÇÃO GERADORA DE FRAMES (Executa a cada frame do vídeo)
+            def make_frame(t):
+                # t é relativo ao inicio do clip (0 a duration)
+                
+                # Criar imagem transparente base
+                img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(img)
+                
+                # Desenhar cada palavra
+                for i, wp in enumerate(word_positions):
+                    # Verificar se esta palavra deve estar iluminada no tempo t
+                    is_active = wp['start_rel'] <= t <= wp['end_rel']
+                    
+                    fill = highlight_color if is_active else base_color
+                    stroke = highlight_stroke if is_active else stroke_color
+                    
+                    # Desenhar (com stroke manual pois PIL é limitado)
+                    x, y = wp['x'], center_y
+                    
+                    # Stroke
+                    if stroke_width > 0:
+                        for off_x in range(-stroke_width, stroke_width + 1):
+                            for off_y in range(-stroke_width, stroke_width + 1):
+                                draw.text((x + off_x, y + off_y), wp['word'], font=font, fill=stroke, anchor="lm")
+                    
+                    # Fill
+                    draw.text((x, y), wp['word'], font=font, fill=fill, anchor="lm")
+                
+                # Convert RGBA to RGB with proper alpha handling
+                arr = np.array(img)
+                # Return only RGB (3 channels), not RGBA (4 channels)
+                rgb = arr[:, :, :3]
+                return rgb
+            
+            # Função para gerar máscara de transparência
+            def make_mask(t):
+                img = Image.new('RGBA', (img_w, img_h), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(img)
+                
+                for i, wp in enumerate(word_positions):
+                    is_active = wp['start_rel'] <= t <= wp['end_rel']
+                    fill = highlight_color if is_active else base_color
+                    stroke = highlight_stroke if is_active else stroke_color
+                    x, y = wp['x'], center_y
+                    
+                    if stroke_width > 0:
+                        for off_x in range(-stroke_width, stroke_width + 1):
+                            for off_y in range(-stroke_width, stroke_width + 1):
+                                draw.text((x + off_x, y + off_y), wp['word'], font=font, fill=stroke, anchor="lm")
+                    draw.text((x, y), wp['word'], font=font, fill=fill, anchor="lm")
+                
+                arr = np.array(img)
+                # Return alpha channel normalized to 0-1
+                return arr[:, :, 3] / 255.0
+
+            # Criar VideoClip Customizado com máscara
+            clip = VideoClip(make_frame, duration=duration)
+            mask_clip = VideoClip(make_mask, ismask=True, duration=duration)
+            clip = clip.set_mask(mask_clip)
+            clip = clip.set_start(start_time).set_position((0, y_pos_video))
+            
+            return [clip] # Retorna lista com 1 único clip, compatível com lógica anterior
+
+        except Exception as e:
+            logger.error(f"Erro no Karaoke Generator: {e}")
+            return []
+
+    def _draw_text_pil(self, draw, pos, text, font, fill, stroke, width):
+        """Helper para desenhar texto com stroke"""
+        x, y = pos
+        # Stroke
+        if width > 0:
+            for off_x in range(-width, width + 1):
+                for off_y in range(-width, width + 1):
+                    draw.text((x + off_x, y + off_y), text, font=font, fill=stroke, anchor="lm")
+        # Fill
+        draw.text((x, y), text, font=font, fill=fill, anchor="lm")
 
     def _get_pil_font(self, size: int):
         """Obtém uma fonte PIL com fallbacks."""
@@ -403,7 +570,58 @@ class DynamicCaptions:
         self.POSITIONS[name] = max(0.05, min(0.95, y_percentage))
         logger.info(f"   📍 Posição customizada '{name}' definida em {y_percentage:.0%}")
 
-
+    def _group_words(self, words: List[Dict], max_chars: int = 25, max_duration: float = 2.5) -> List[Dict]:
+        """Agrupa palavras em frases curtas (Smart Grouping)"""
+        if not words:
+            return []
+            
+        groups = []
+        current_group = []
+        current_chars = 0
+        current_start = words[0]['start']
+        
+        for i, word in enumerate(words):
+            w_len = len(word['word'])
+            w_end = word['end']
+            
+            # Condições para quebrar o grupo:
+            # 1. Muito longo (caracteres)
+            # 2. Muito longo (tempo)
+            # 3. Pausa grande antes desta palavra (silêncio)
+            
+            time_gap = word['start'] - (words[i-1]['end'] if i > 0 else word['start'])
+            
+            if (current_chars + w_len > max_chars) or \
+               (w_end - current_start > max_duration) or \
+               (time_gap > 0.5): # Pausa de 0.5s = nova frase
+                
+                # Fechar grupo anterior
+                if current_group:
+                    groups.append({
+                        'text': ' '.join([w['word'] for w in current_group]),
+                        'start': current_group[0]['start'],
+                        'end': current_group[-1]['end'],
+                        'words': current_group
+                    })
+                
+                # Iniciar novo grupo
+                current_group = [word]
+                current_chars = w_len
+                current_start = word['start']
+            else:
+                current_group.append(word)
+                current_chars += w_len + 1 # +1 para o espaço
+                
+        # Adicionar último grupo
+        if current_group:
+            groups.append({
+                'text': ' '.join([w['word'] for w in current_group]),
+                'start': current_group[0]['start'],
+                'end': current_group[-1]['end'],
+                'words': current_group
+            })
+            
+        return groups
 if __name__ == "__main__":
     # Teste rápido
     captions = DynamicCaptions(style='hormozi')

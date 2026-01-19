@@ -49,20 +49,20 @@ Exemplos de uso:
 
     # Grupo exclusivo: Ou URL ou Arquivo Local
     source_group = parser.add_mutually_exclusive_group(required=True)
-    source_group.add_argument("--url", help="URL do vídeo do YouTube")
+    source_group.add_argument("--url", help="URL do vídeo (YouTube, TikTok, Twitter, etc)")
     source_group.add_argument("--file", help="Caminho para arquivo de vídeo local")
 
     # Opções Gerais
     parser.add_argument("--clips", type=int, default=3, help="Número de clipes para gerar")
-    parser.add_argument("--min-duration", type=int, default=30, help="Duração mínima por clipe (segundos)")
-    parser.add_argument("--max-duration", type=int, default=60, help="Duração máxima por clipe (segundos)")
+    parser.add_argument("--min-duration", type=int, default=60, help="Duração mínima por clipe (segundos)")
+    parser.add_argument("--max-duration", type=int, default=90, help="Duração máxima por clipe (segundos)")
     parser.add_argument("--whisper-model", default=Config.WHISPER_MODEL, help="Modelo do Whisper (tiny, base, small, medium, large)")
     parser.add_argument("--output", help="Diretório de saída customizado")
     parser.add_argument("--keep-temp", action="store_true", help="Manter arquivos temporários")
 
     # Opções de Processamento
     parser.add_argument("--captions", action="store_true", help="Adicionar legendas dinâmicas")
-    parser.add_argument("--caption-style", choices=['hormozi', 'mr_beast', 'minimal'], default='hormozi', help="Estilo da legenda")
+    parser.add_argument("--caption-style", choices=['hormozi', 'modern', 'neon', 'bold_pro', 'karaoke_modern', 'mr_beast', 'minimal'], default='hormozi', help="Estilo da legenda")
     parser.add_argument("--broll", action="store_true", help="Adicionar B-Rolls automáticos")
     parser.add_argument("--variants", action="store_true", help="Gerar variantes para TikTok/Reels/Shorts")
     parser.add_argument("--critic", action="store_true", help="Avaliar qualidade com Agente Crítico")
@@ -319,61 +319,68 @@ Exemplos de uso:
                     moment['start'],
                     moment['end'],
                     output_path,
-                    crop_mode='center',
-                    vibe=vibe
+                    crop_mode='auto',
+                    vibe=vibe,
+                    transcription=segments
                 )
 
                 # STAGE 4.5: Audio Enhancement (NO CLIP - Não no vídeo inteiro!)
-                try:
-                    from src.modules.audio_enhancer import AudioEnhancer
-                    from moviepy.editor import VideoFileClip, AudioFileClip
+                if clip_path and clip_path.exists():
+                    try:
+                        from src.modules.audio_enhancer import AudioEnhancer
+                        from moviepy.editor import VideoFileClip, AudioFileClip
 
-                    logger.info(f"   🎚️ Aprimorando áudio do clipe...")
+                        logger.info(f"   🎚️ Aprimorando áudio do clipe...")
 
-                    # Extrair áudio do clipe
-                    temp_audio = Config.TEMP_DIR / f"clip_audio_{i}.mp3"
-                    clip_video = VideoFileClip(str(clip_path))
-                    clip_video.audio.write_audiofile(str(temp_audio), logger=None)
+                        # Extrair áudio do clipe
+                        temp_audio = Config.TEMP_DIR / f"clip_audio_{i}.mp3"
+                        clip_video = VideoFileClip(str(clip_path))
+                        clip_video.audio.write_audiofile(str(temp_audio), logger=None)
 
-                    # Aprimorar
-                    enhancer = AudioEnhancer()
-                    enhanced_audio = temp_audio.with_suffix('.enhanced.mp3')
-                    result = enhancer.enhance_audio(temp_audio, enhanced_audio, reduce_noise=True)
+                        # Aprimorar
+                        enhancer = AudioEnhancer()
+                        enhanced_audio = temp_audio.with_suffix('.enhanced.mp3')
+                        result = enhancer.enhance_audio(temp_audio, enhanced_audio, reduce_noise=True)
 
-                    if result:
-                        # Substituir áudio no vídeo
-                        new_audio = AudioFileClip(str(enhanced_audio))
-                        final_video = clip_video.set_audio(new_audio)
+                        if result:
+                            # Substituir áudio no vídeo
+                            new_audio = AudioFileClip(str(enhanced_audio))
+                            final_video = clip_video.set_audio(new_audio)
 
-                        # Salvar com áudio melhorado
-                        temp_output = clip_path.with_suffix('.enhanced.mp4')
-                        final_video.write_videofile(
-                            str(temp_output),
-                            codec='libx264',
-                            audio_codec='aac',
-                            fps=Config.VIDEO_FPS or clip_video.fps or 30,
-                            logger=None
-                        )
+                            # Salvar com áudio melhorado
+                            temp_output = clip_path.with_suffix('.enhanced.mp4')
+                            final_video.write_videofile(
+                                str(temp_output),
+                                codec='libx264',
+                                audio_codec='aac',
+                                fps=Config.VIDEO_FPS or clip_video.fps or 30,
+                                logger=None
+                            )
 
-                        clip_video.close()
-                        new_audio.close()
-                        final_video.close()
+                            clip_video.close()
+                            new_audio.close()
+                            final_video.close()
 
-                        # Substituir original
-                        clip_path.unlink()
-                        temp_output.rename(clip_path)
+                            # Substituir original
+                            clip_path.unlink()
+                            temp_output.rename(clip_path)
 
-                        logger.info(f"   ✅ Áudio do clipe aprimorado!")
-                    else:
-                        clip_video.close()
+                            logger.info(f"   ✅ Áudio do clipe aprimorado!")
+                        else:
+                            clip_video.close()
 
-                except Exception as e:
-                    logger.warning(f"   ⚠️ Audio Enhancement pulado: {e}")
+                    except Exception as e:
+                        logger.warning(f"   ⚠️ Audio Enhancement pulado: {e}")
+                else:
+                    logger.warning(f"   ⚠️ Audio Enhancement pulado: Arquivo do clipe inválido.")
 
-                generated_clips.append({
-                    'path': clip_path,
-                    'moment': moment
-                })
+                if clip_path and clip_path.exists():
+                    generated_clips.append({
+                        'path': clip_path,
+                        'moment': moment
+                    })
+                else:
+                    logger.error(f"   ❌ Falha ao criar clipe {i}, pulando...")
 
 
                 # STAGE 5: Gerar Thumbnail (Fase 21)
@@ -400,7 +407,14 @@ Exemplos de uso:
                     # Por simplicidade, usando o hook e o transcript geral
 
                     meta_path = output_dir / f"metadata_{i:02d}.json"
-                    metadata = meta_agent.generate_metadata(moment['text'], vibe)
+                    
+                    # Fallback para o texto do metadata
+                    meta_text = moment.get('text', '')
+                    if not meta_text:
+                         # Se não tiver texto no momento (ex: detectado por audio/keywords locais), usar hook
+                         meta_text = moment.get('hook', 'Conteúdo Viral')
+                         
+                    metadata = meta_agent.generate_metadata(meta_text, vibe)
 
                     if metadata:
                         meta_agent.save_metadata(metadata, meta_path)
@@ -430,8 +444,9 @@ Exemplos de uso:
 
             narrator = get_narrator()
 
-            # Só processa se tiver voz personalizada ou se o usuário pediu (implícito na preferência)
-            if narrator.has_custom_voice or EDGE_TTS_AVAILABLE:
+            # Só processa se tiver voz personalizada ou se o narrador estiver disponível (Kokoro)
+            # DESATIVADO POR SOLICITAÇÃO DO USUÁRIO (Evitar sobreposição com áudio original)
+            if False: # narrator.has_custom_voice or True:
 
                 for clip_data in generated_clips:
                     try:
@@ -581,6 +596,10 @@ Exemplos de uso:
                     clip_path = clip_data['path']
                     moment = clip_data['moment']
 
+                    if not clip_path or not clip_path.exists():
+                        logger.warning(f"   ⚠️ Clipe inválido, pulando legendas.")
+                        continue
+
                     logger.info(f"\n📝 Adicionando legendas: {clip_path.name}")
 
                     # Extrair palavras para o intervalo do clipe
@@ -648,14 +667,24 @@ Exemplos de uso:
         logger.info(f"   Áudio: {video_data['audio_path'].name}")
         logger.info(f"   Transcrição: {srt_path.name}")
         logger.info("")
-        logger.info("🎬 Clipes finais (prontos para publicar):")
-        for i, clip_data in enumerate(generated_clips, 1):
-            clip_path = clip_data['path']
-            moment = clip_data['moment']
-            file_size_mb = clip_path.stat().st_size / (1024 * 1024)
-            logger.info(f"   {i}. {clip_path.name} ({file_size_mb:.1f} MB)")
-            logger.info(f"      {moment['hook']}")
-            logger.info(f"      Score: {moment['score']}/10")
+        if generated_clips:
+            logger.info("🎬 Clipes finais (prontos para publicar):")
+            for i, clip_data in enumerate(generated_clips, 1):
+                clip_path = clip_data['path']
+                moment = clip_data['moment']
+                
+                if clip_path and clip_path.exists():
+                    try:
+                        file_size_mb = clip_path.stat().st_size / (1024 * 1024)
+                        logger.info(f"   {i}. {clip_path.name} ({file_size_mb:.1f} MB)")
+                        # Sinal para o Telegram Bot capturar o caminho
+                        logger.info(f"Clip {i} gerado com sucesso: {clip_path}")
+                        logger.info(f"      {moment['hook']}")
+                        logger.info(f"      Score: {moment['score']}/10")
+                    except Exception as e:
+                        logger.warning(f"   {i}. [ERRO] Erro ao ler stats: {e}")
+                else:
+                    logger.warning(f"   {i}. [ERRO] Arquivo do clipe não encontrado")
         logger.info("")
         logger.info("💡 Dicas:")
         logger.info("   - Assista os clipes para validar a qualidade")
@@ -737,6 +766,7 @@ Exemplos de uso:
         sys.exit(1)
     except Exception as e:
         logger.error(f"\n\n❌ Erro fatal: {e}")
+        print(f"[FATAL_ERROR] {e}", flush=True)  # Ensure visibility in subprocess output
         if Config.DEBUG_MODE:
             import traceback
             traceback.print_exc()
