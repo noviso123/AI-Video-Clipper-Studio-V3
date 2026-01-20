@@ -1,3 +1,0 @@
-Debug Script Running. Python: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/venv/bin/python
-CWD: /var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3
-SUCCESS: app.py is running (timeout expired means it kept running)

@@ -1,3 +1,0 @@
-  File "/var/home/jsatiro/Documentos/AI-Video-Clipper-Studio-V3/setup_auth.py", line 21
-    print(f"\n🌐 Navegador aberto em: {url}")
-IndentationError: unexpected indent

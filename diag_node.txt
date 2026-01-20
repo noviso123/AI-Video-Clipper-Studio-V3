@@ -1,7 +1,0 @@
-🔍 Diagnosing Node.js environment...
-PATH: /home/jsatiro/.local/bin:/home/jsatiro/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/jsatiro/.antigravity/extensions/ms-python.debugpy-2025.18.0-linux-x64/bundled/scripts/noConfigScripts...
-shutil.which('node'): None
-Subprocess node -v failed: [Errno 2] No such file or directory: 'node'
-Local node exists: True
-Local node permissions: 0o100755
-Local node -v directly: v18.19.1

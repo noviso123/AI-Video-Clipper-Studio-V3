@@ -1,838 +1,920 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Video Clipper Studio V3</title>
-    <meta name="description" content="Transforme vídeos longos em clips virais automaticamente com IA">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
-    <style>
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0a0a1a 0%, #1a1030 50%, #0a0a1a 100%);
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-
-        .glass {
-            background: rgba(20, 20, 40, 0.7);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
-        }
-
-        .terminal {
-            background: #0d0d0d;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-        }
-
-        .scroll::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .scroll::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .scroll::-webkit-scrollbar-thumb {
-            background: #4f46e5;
-            border-radius: 3px;
-        }
-
-        .clip-card {
-            transition: all 0.3s ease;
-        }
-
-        .clip-card:hover {
-            transform: translateY(-3px);
-            background: rgba(30, 30, 60, 0.9);
-        }
-
-        .online {
-            color: #10b981;
-        }
-
-        .offline {
-            color: #ef4444;
-        }
-
-        .processing {
-            color: #f59e0b;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Video Clipper Studio V3</title>
+        <meta name="description" content="Transforme vídeos longos em clips virais automaticamente com IA">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+            rel="stylesheet">
+        <style>
+            * {
+                font-family: 'Inter', sans-serif;
             }
 
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
+            body {
+                background: linear-gradient(135deg, #0a0a1a 0%, #1a1030 50%, #0a0a1a 100%);
+                background-attachment: fixed;
+                min-height: 100vh;
             }
 
-            to {
-                transform: rotate(360deg);
+            .glass {
+                background: rgba(20, 20, 40, 0.7);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
             }
-        }
 
-        .spin {
-            animation: spin 1s linear infinite;
-        }
+            .gradient-text {
+                background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
 
-        .score-high {
-            background: linear-gradient(135deg, #059669, #10b981);
-        }
+            .btn-primary {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                transition: all 0.3s ease;
+            }
 
-        .score-mid {
-            background: linear-gradient(135deg, #d97706, #f59e0b);
-        }
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+            }
 
-        .score-low {
-            background: linear-gradient(135deg, #dc2626, #f43f5e);
-        }
-    </style>
-</head>
+            .btn-danger {
+                background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
+            }
 
-<body class="text-white">
-    <div class="min-h-screen flex flex-col">
+            .terminal {
+                background: #0d0d0d;
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            }
 
-        <!-- HEADER -->
-        <header class="glass border-b border-white/10 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">🎬</span>
-                    <span class="font-bold text-lg">AI Video Clipper <span
-                            class="gradient-text font-extrabold">V3</span></span>
+            .scroll::-webkit-scrollbar {
+                width: 6px;
+                height: 6px;
+            }
+
+            .scroll::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.3);
+            }
+
+            .scroll::-webkit-scrollbar-thumb {
+                background: #4f46e5;
+                border-radius: 3px;
+            }
+
+            .clip-card {
+                transition: all 0.3s ease;
+            }
+
+            .clip-card:hover {
+                transform: translateY(-3px);
+                background: rgba(30, 30, 60, 0.9);
+            }
+
+            .online {
+                color: #10b981;
+            }
+
+            .offline {
+                color: #ef4444;
+            }
+
+            .processing {
+                color: #f59e0b;
+                animation: pulse 1s infinite;
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .spin {
+                animation: spin 1s linear infinite;
+            }
+
+            .score-high {
+                background: linear-gradient(135deg, #059669, #10b981);
+            }
+
+            .score-mid {
+                background: linear-gradient(135deg, #d97706, #f59e0b);
+            }
+
+            .score-low {
+                background: linear-gradient(135deg, #dc2626, #f43f5e);
+            }
+        </style>
+    </head>
+
+    <body class="text-white">
+        <div class="min-h-screen flex flex-col">
+
+            <!-- HEADER -->
+            <header class="glass border-b border-white/10 sticky top-0 z-50">
+                <div class="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🎬</span>
+                        <span class="font-bold text-lg">AI Video Clipper <span
+                                class="gradient-text font-extrabold">V3</span></span>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <div id="api-status" class="flex gap-2 text-xs">
+                            <span
+                                class="px-2 py-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30">⚡
+                                100% Local</span>
+                        </div>
+                        <div id="server-status" class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span class="text-slate-400">Checando Sistema...</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center gap-4 text-sm">
-                    <div id="api-status" class="flex gap-2 text-xs">
-                        <span
-                            class="px-2 py-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30">⚡
-                            100% Local</span>
-                    </div>
-                    <div id="server-status" class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                        <span class="text-slate-400">Checando Sistema...</span>
-                    </div>
+            </header>
+
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+                <!-- LEFT: Input + Actions -->
+                <div class="lg:col-span-1 space-y-4">
+
+                    <!-- INPUT PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <h2 class="font-bold mb-3 flex items-center gap-2">
+                            <span class="text-xl">📹</span> Entrada
+                        </h2>
+
+                        <!-- Tabs -->
+                        <div class="flex bg-slate-900/80 rounded-lg p-1 mb-3">
+                            <button onclick="setMode('url')" id="tab-url"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all">
+                                📺 Clipping
+                            </button>
+                            <button onclick="setMode('autonomous')" id="tab-autonomous"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+                                🧠 Cérebro
+                            </button>
+                            <button onclick="setMode('file')" id="tab-file"
+                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+                                📁 Arquivo
+                            </button>
+                        </div>
+
+                        <!-- Input Field -->
+                        <div class="relative mb-3">
+                            <input type="text" id="input-val"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm"
+                                placeholder="Cole a URL do YouTube..."
+                                onkeydown="if(event.key === 'Enter') startProcessing()">
+                            <button id="browse-btn" onclick="browseFile()"
+                                class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-medium">
+                                📂 Buscar
+                            </button>
+                        </div>
+
+                        <!-- Settings -->
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Clips</label>
+                                <input type="number" id="input-clips" value="3" min="1" max="10"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Min (s)</label>
+                                <input type="number" id="input-min-dur" value="60" min="60" max="300"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Max (s)</label>
+                                <input type="number" id="input-max-dur" value="90" min="60" max="600"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                            </div>
+                        </div>
+
+                        <!-- Toggles -->
+                        <div class="space-y-2 mb-4 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-xs font-semibold text-slate-300">🎤 Legendas Karaoke (V3)</span>
+                                <input type="checkbox" id="check-captions" checked class="accent-indigo-500 w-4 h-4">
+                            </label>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-xs font-semibold text-slate-300">🎬 B-Rolls Automáticos
+                                    (Scraper)</span>
+                                <input type="checkbox" id="check-broll" checked class="accent-indigo-500 w-4 h-4">
+                            </label>
+                            <label class="flex items-center justify-between cursor-pointer">
+                                <span class="text-xs font-semibold text-slate-300">🧐 Crítico IA</span>
+                                <input type="checkbox" id="check-critic" checked class="accent-indigo-500 w-4 h-4">
+                            </label>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-2">
+                            <button id="start-btn" onclick="startProcessing()"
+                                class="w-full btn-primary py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
+                                <span>✨</span> <span id="start-btn-text">GERAR CLIPS</span>
+                            </button>
+                            <button id="stop-btn" onclick="stopProcessing()"
+                                class="hidden w-full btn-danger py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
+                                <span>🛑</span> PARAR
+                            </button>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mt-3 pt-3 border-t border-slate-700/50 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Status:</span>
+                                <span id="process-status" class="font-medium text-slate-300">Aguardando</span>
+                            </div>
+                            <div class="flex justify-between mt-1">
+                                <span class="text-slate-400">Etapa:</span>
+                                <span id="process-step" class="font-medium text-indigo-400">--</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- HISTORY PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">📋</span> Último Processamento
+                            </h2>
+                        </div>
+                        <div id="history-content" class="text-sm text-slate-400 italic">
+                            Nenhum vídeo processado ainda.
+                        </div>
+                    </section>
+
+                    <!-- ACTIONS PANEL -->
+                    <section class="glass rounded-xl p-4">
+                        <h2 class="font-bold mb-3 flex items-center gap-2">
+                            <span class="text-xl">⚡</span> Ações Rápidas
+                        </h2>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="refreshAll()"
+                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
+                                🔄 Atualizar
+                            </button>
+                            <button onclick="clearLogs()"
+                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
+                                📝 Limpar Logs
+                            </button>
+                            <button onclick="deleteAllClips()"
+                                class="text-xs bg-red-900/50 hover:bg-red-900 text-red-400 py-2 px-3 rounded-lg transition-all">
+                                🗑️ Limpar Clips
+                            </button>
+                            <button onclick="nukeAll()"
+                                class="text-xs bg-red-600 hover:bg-red-500 text-white py-2 px-3 rounded-lg transition-all font-bold">
+                                ☢️ APAGAR TUDO
+                            </button>
+                        </div>
+                    </section>
+
                 </div>
-            </div>
-        </header>
 
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            <!-- LEFT: Input + Actions -->
-            <div class="lg:col-span-1 space-y-4">
-
-                <!-- INPUT PANEL -->
-                <section class="glass rounded-xl p-4">
-                    <h2 class="font-bold mb-3 flex items-center gap-2">
-                        <span class="text-xl">📹</span> Entrada
-                    </h2>
-
-                    <!-- Tabs -->
-                    <div class="flex bg-slate-900/80 rounded-lg p-1 mb-3">
-                        <button onclick="setMode('url')" id="tab-url"
-                            class="flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all">
-                            📺 Clipping
-                        </button>
-                        <button onclick="setMode('autonomous')" id="tab-autonomous"
-                            class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                            🧠 Cérebro
-                        </button>
-                        <button onclick="setMode('file')" id="tab-file"
-                            class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                            📁 Arquivo
-                        </button>
-                    </div>
-
-                    <!-- Input Field -->
-                    <div class="relative mb-3">
-                        <input type="text" id="input-val"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm"
-                            placeholder="Cole a URL do YouTube..."
-                            onkeydown="if(event.key === 'Enter') startProcessing()">
-                        <button id="browse-btn" onclick="browseFile()"
-                            class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-medium">
-                            📂 Buscar
-                        </button>
-                    </div>
-
-                    <!-- Settings -->
-                    <div class="grid grid-cols-3 gap-2 mb-3">
-                        <div class="space-y-1">
-                            <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Clips</label>
-                            <input type="number" id="input-clips" value="3" min="1" max="10"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                <!-- CENTER: Console -->
+                <div class="lg:col-span-1 flex flex-col">
+                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">💻</span> Console
+                            </h2>
+                            <span id="log-count" class="text-xs text-slate-500">0 linhas</span>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Min (s)</label>
-                            <input type="number" id="input-min-dur" value="60" min="60" max="300"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                        <div id="console"
+                            class="terminal rounded-lg p-3 flex-1 overflow-y-auto scroll text-xs text-green-400 min-h-[400px]">
+                            <div>$ Sistema inicializado. Aguardando entrada...</div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Max (s)</label>
-                            <input type="number" id="input-max-dur" value="90" min="60" max="600"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
+                    </section>
+                </div>
+
+                <!-- RIGHT: Clips -->
+                <div class="lg:col-span-1 flex flex-col">
+                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="font-bold flex items-center gap-2">
+                                <span class="text-xl">🎬</span> Clips Gerados
+                            </h2>
+                            <span id="clips-count" class="text-xs text-slate-500">0 clips</span>
                         </div>
-                    </div>
-
-                    <!-- Toggles -->
-                    <div class="space-y-2 mb-4 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-xs font-semibold text-slate-300">🎤 Legendas Karaoke (V3)</span>
-                            <input type="checkbox" id="check-captions" checked class="accent-indigo-500 w-4 h-4">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-xs font-semibold text-slate-300">🎬 B-Rolls Automáticos (Scraper)</span>
-                            <input type="checkbox" id="check-broll" checked class="accent-indigo-500 w-4 h-4">
-                        </label>
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-xs font-semibold text-slate-300">🧐 Crítico IA</span>
-                            <input type="checkbox" id="check-critic" checked class="accent-indigo-500 w-4 h-4">
-                        </label>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="space-y-2">
-                        <button id="start-btn" onclick="startProcessing()"
-                            class="w-full btn-primary py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
-                            <span>✨</span> <span id="start-btn-text">GERAR CLIPS</span>
-                        </button>
-                        <button id="stop-btn" onclick="stopProcessing()"
-                            class="hidden w-full btn-danger py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
-                            <span>🛑</span> PARAR
-                        </button>
-                    </div>
-
-                    <!-- Status -->
-                    <div class="mt-3 pt-3 border-t border-slate-700/50 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">Status:</span>
-                            <span id="process-status" class="font-medium text-slate-300">Aguardando</span>
+                        <div id="clips-list" class="flex-1 overflow-y-auto scroll space-y-2 min-h-[400px]">
+                            <div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>
                         </div>
-                        <div class="flex justify-between mt-1">
-                            <span class="text-slate-400">Etapa:</span>
-                            <span id="process-step" class="font-medium text-indigo-400">--</span>
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
 
-                <!-- HISTORY PANEL -->
-                <section class="glass rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="font-bold flex items-center gap-2">
-                            <span class="text-xl">📋</span> Último Processamento
-                        </h2>
-                    </div>
-                    <div id="history-content" class="text-sm text-slate-400 italic">
-                        Nenhum vídeo processado ainda.
-                    </div>
-                </section>
+            </main>
 
-                <!-- ACTIONS PANEL -->
-                <section class="glass rounded-xl p-4">
-                    <h2 class="font-bold mb-3 flex items-center gap-2">
-                        <span class="text-xl">⚡</span> Ações Rápidas
-                    </h2>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="refreshAll()"
-                            class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
-                            🔄 Atualizar
-                        </button>
-                        <button onclick="clearLogs()"
-                            class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
-                            📝 Limpar Logs
-                        </button>
-                        <button onclick="deleteAllClips()"
-                            class="text-xs bg-red-900/50 hover:bg-red-900 text-red-400 py-2 px-3 rounded-lg transition-all">
-                            🗑️ Limpar Clips
-                        </button>
-                        <button onclick="nukeAll()"
-                            class="text-xs bg-red-600 hover:bg-red-500 text-white py-2 px-3 rounded-lg transition-all font-bold">
-                            ☢️ APAGAR TUDO
-                        </button>
-                    </div>
-                </section>
+            <!-- FOOTER -->
+            <footer class="text-center py-4 text-xs text-slate-500">
+                AI Video Clipper Studio V3 • Local Mode
+            </footer>
 
-            </div>
-
-            <!-- CENTER: Console -->
-            <div class="lg:col-span-1 flex flex-col">
-                <section class="glass rounded-xl p-4 flex-1 flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="font-bold flex items-center gap-2">
-                            <span class="text-xl">💻</span> Console
-                        </h2>
-                        <span id="log-count" class="text-xs text-slate-500">0 linhas</span>
-                    </div>
-                    <div id="console"
-                        class="terminal rounded-lg p-3 flex-1 overflow-y-auto scroll text-xs text-green-400 min-h-[400px]">
-                        <div>$ Sistema inicializado. Aguardando entrada...</div>
-                    </div>
-                </section>
-            </div>
-
-            <!-- RIGHT: Clips -->
-            <div class="lg:col-span-1 flex flex-col">
-                <section class="glass rounded-xl p-4 flex-1 flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="font-bold flex items-center gap-2">
-                            <span class="text-xl">🎬</span> Clips Gerados
-                        </h2>
-                        <span id="clips-count" class="text-xs text-slate-500">0 clips</span>
-                    </div>
-                    <div id="clips-list" class="flex-1 overflow-y-auto scroll space-y-2 min-h-[400px]">
-                        <div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>
-                    </div>
-                </section>
-            </div>
-
-        </main>
-
-        <!-- FOOTER -->
-        <footer class="text-center py-4 text-xs text-slate-500">
-            AI Video Clipper Studio V3 • Local Mode
-        </footer>
-
-    </div>
-
-    <!-- VIDEO MODAL (FULLSCREEN) -->
-    <div id="modal" class="fixed inset-0 z-[100] bg-black flex flex-col" style="display: none;">
-        <!-- Header Bar -->
-        <div
-            class="flex justify-between items-center px-4 py-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
-            <span id="modal-title"
-                class="text-sm font-bold truncate flex-1 mr-4 text-white drop-shadow-lg">Preview</span>
-            <button onclick="closeModal()"
-                class="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl text-white hover:bg-white/30 transition-all">
-                &times;
-            </button>
         </div>
 
-        <!-- Video Container (FULLSCREEN) -->
-        <div class="flex-1 flex items-center justify-center bg-black" onclick="toggleVideoPlay()">
-            <video id="modal-video" controls autoplay playsinline
-                class="max-h-full max-w-full w-auto h-auto object-contain"
-                style="max-height: 100vh; max-width: 100vw;"></video>
-        </div>
-
-        <!-- Bottom Controls -->
-        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div class="max-w-md mx-auto space-y-2">
-                <div class="flex gap-2">
-                    <a id="modal-download" href="#" download
-                        class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-center py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
-                        ⬇️ Download
-                    </a>
-                    <button id="modal-share" onclick="shareVideo()"
-                        class="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
-                        📤 Compartilhar
-                    </button>
-                </div>
-                <button id="modal-copy-link" onclick="copyVideoLink()"
-                    class="w-full bg-white/20 backdrop-blur hover:bg-white/30 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                    🔗 Copiar Link
+        <!-- VIDEO MODAL (FULLSCREEN) -->
+        <div id="modal" class="fixed inset-0 z-[100] bg-black flex flex-col" style="display: none;">
+            <!-- Header Bar -->
+            <div
+                class="flex justify-between items-center px-4 py-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+                <span id="modal-title"
+                    class="text-sm font-bold truncate flex-1 mr-4 text-white drop-shadow-lg">Preview</span>
+                <button onclick="closeModal()"
+                    class="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl text-white hover:bg-white/30 transition-all">
+                    &times;
                 </button>
             </div>
+
+            <!-- Video Container (FULLSCREEN) -->
+            <div class="flex-1 flex items-center justify-center bg-black" onclick="toggleVideoPlay()">
+                <video id="modal-video" controls autoplay playsinline
+                    class="max-h-full max-w-full w-auto h-auto object-contain"
+                    style="max-height: 100vh; max-width: 100vw;"></video>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <div class="max-w-md mx-auto space-y-2">
+                    <div class="flex gap-2">
+                        <a id="modal-download" href="#" download
+                            class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-center py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+                            ⬇️ Download
+                        </a>
+                        <button id="modal-share" onclick="shareVideo()"
+                            class="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+                            📤 Compartilhar
+                        </button>
+                    </div>
+                    <button id="modal-copy-link" onclick="copyVideoLink()"
+                        class="w-full bg-white/20 backdrop-blur hover:bg-white/30 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                        🔗 Copiar Link
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <script>
-        // =====================
-        // STATE
-        // =====================
-        let mode = 'url';
-        let eventSource = null;
-        let isProcessing = false;
+        <script>
+            // =====================
+            // STATE
+            // =====================
+            let mode = 'url';
+            let eventSource = null;
+            let isProcessing = false;
+            let displayedLogCount = 0; // Track how many logs we've already displayed
 
-        // =====================
-        // INIT
-        // =====================
-        window.onload = async () => {
-            await loadHealth();
-            await loadStatus();
-            await loadClips();
-        };
+            // =====================
+            // INIT
+            // =====================
+            window.onload = async () =>
+            {
+                await loadHealth();
+                await loadStatus();
+                await loadClips();
+            };
 
-        async function loadHealth() {
-            try {
-                const res = await fetch('/api/health');
-                const data = await res.json();
+            async function loadHealth ()
+            {
+                try
+                {
+                    const res = await fetch( '/api/health' );
+                    const data = await res.json();
 
-                updateServerStatus(true);
+                    updateServerStatus( true );
 
-                // Local only - no external API checks needed
-            } catch (e) {
-                updateServerStatus(false);
+                    // Local only - no external API checks needed
+                } catch ( e )
+                {
+                    updateServerStatus( false );
+                }
             }
-        }
 
-        async function loadStatus() {
-            try {
-                const res = await fetch('/status');
-                const state = await res.json();
+            async function loadStatus ()
+            {
+                try
+                {
+                    const res = await fetch( '/status' );
+                    const state = await res.json();
 
-                if (state.current_project) {
-                    updateHistory(state.current_project.input, state.status);
+                    if ( state.current_project )
+                    {
+                        updateHistory( state.current_project.input, state.status );
+                    }
+
+                    if ( state.logs && state.logs.length > 0 )
+                    {
+                        const console = document.getElementById( 'console' );
+                        console.innerHTML = state.logs.map( l => `<div>${ sanitize( l ) }</div>` ).join( '' );
+                        console.scrollTop = console.scrollHeight;
+                        document.getElementById( 'log-count' ).textContent = `${ state.logs.length } linhas`;
+                        displayedLogCount = state.logs.length; // Track how many we've shown
+                    }
+
+                    if ( state.running )
+                    {
+                        showProcessingUI();
+                        connectStream();
+                    }
+                } catch ( e )
+                {
+                    console.error( 'Error loading status:', e );
                 }
-
-                if (state.logs && state.logs.length > 0) {
-                    const console = document.getElementById('console');
-                    console.innerHTML = state.logs.map(l => `<div>${sanitize(l)}</div>`).join('');
-                    console.scrollTop = console.scrollHeight;
-                    document.getElementById('log-count').textContent = `${state.logs.length} linhas`;
-                }
-
-                if (state.running) {
-                    showProcessingUI();
-                    connectStream();
-                }
-            } catch (e) {
-                console.error('Error loading status:', e);
             }
-        }
 
-        async function loadClips() {
-            try {
-                const res = await fetch('/api/clips');
-                const clips = await res.json();
-                const container = document.getElementById('clips-list');
-                document.getElementById('clips-count').textContent = `${clips.length} clips`;
+            async function loadClips ()
+            {
+                try
+                {
+                    const res = await fetch( '/api/clips' );
+                    const clips = await res.json();
+                    const container = document.getElementById( 'clips-list' );
+                    document.getElementById( 'clips-count' ).textContent = `${ clips.length } clips`;
 
-                if (clips.length === 0) {
-                    container.innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>';
-                    return;
-                }
+                    if ( clips.length === 0 )
+                    {
+                        container.innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>';
+                        return;
+                    }
 
-                container.innerHTML = clips.map((clip, index) => {
-                    const scoreClass = clip.score >= 8 ? 'score-high' : clip.score >= 5 ? 'score-mid' : 'score-low';
-                    const rankEmoji = index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+                    container.innerHTML = clips.map( ( clip, index ) =>
+                    {
+                        const scoreClass = clip.score >= 8 ? 'score-high' : clip.score >= 5 ? 'score-mid' : 'score-low';
+                        const rankEmoji = index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${ index + 1 }`;
 
-                    return `
+                        return `
                         <div class="clip-card bg-slate-800/50 rounded-lg p-3 cursor-pointer flex gap-3 relative"
-                             onclick="openModal('${clip.video}', '${sanitize(clip.title)}')">
-                             
+                             onclick="openModal('${ clip.video }', '${ sanitize( clip.title ) }')">
+
                             <!-- Rank Badge -->
                             <div class="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-slate-900 border-2 border-indigo-500/50 flex items-center justify-center text-xs font-bold shadow-lg z-10">
-                                ${rankEmoji}
+                                ${ rankEmoji }
                             </div>
 
                             <div class="w-14 h-20 bg-slate-700 rounded overflow-hidden flex-shrink-0">
-                                ${clip.thumb ?
-                            `<img src="/exports/${clip.thumb}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='🎬'">` :
-                            `<div class="w-full h-full flex items-center justify-center text-xl">🎬</div>`
-                        }
+                                ${ clip.thumb ?
+                                `<img src="/exports/${ clip.thumb }" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='🎬'">` :
+                                `<div class="w-full h-full flex items-center justify-center text-xl">🎬</div>`
+                            }
                             </div>
                             <div class="flex-1 min-w-0">
-                                <div class="font-medium text-sm text-white line-clamp-2 mb-1 pl-1">${sanitize(clip.title)}</div>
+                                <div class="font-medium text-sm text-white line-clamp-2 mb-1 pl-1">${ sanitize( clip.title ) }</div>
                                 <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-slate-700/50 ${scoreClass} bg-opacity-20 border-opacity-50">
+                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-slate-700/50 ${ scoreClass } bg-opacity-20 border-opacity-50">
                                         <span class="text-[10px] uppercase font-bold text-slate-400">Score</span>
-                                        <span class="text-sm font-black text-white">${clip.score.toFixed(1)}</span>
+                                        <span class="text-sm font-black text-white">${ clip.score.toFixed( 1 ) }</span>
                                     </div>
-                                    <button onclick="event.stopPropagation(); deleteClip('${clip.video}')"
+                                    <button onclick="event.stopPropagation(); deleteClip('${ clip.video }')"
                                         class="hover:bg-slate-700 p-1.5 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
                                 </div>
                             </div>
                         </div>
                     `;
-                }).join('');
-            } catch (e) {
-                console.error('Error loading clips:', e);
+                    } ).join( '' );
+                } catch ( e )
+                {
+                    console.error( 'Error loading clips:', e );
+                }
             }
-        }
 
 
-        // =====================
-        // UI HELPERS
-        // =====================
-        function updateServerStatus(online) {
-            const el = document.getElementById('server-status');
-            if (online) {
-                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="online font-bold text-emerald-400">Sistema Online</span>`;
-            } else {
-                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="offline font-bold text-red-400">Backend Offline</span>`;
+            // =====================
+            // UI HELPERS
+            // =====================
+            function updateServerStatus ( online )
+            {
+                const el = document.getElementById( 'server-status' );
+                if ( online )
+                {
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="online font-bold text-emerald-400">Sistema Online</span>`;
+                } else
+                {
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="offline font-bold text-red-400">Backend Offline</span>`;
+                }
             }
-        }
 
-        function updateHistory(input, status) {
-            const filename = input ? input.split('/').pop().split('\\').pop() : 'N/A';
-            let statusText = '⏳ Processando...';
-            let statusClass = 'processing';
+            function updateHistory ( input, status )
+            {
+                const filename = input ? input.split( '/' ).pop().split( '\\' ).pop() : 'N/A';
+                let statusText = '⏳ Processando...';
+                let statusClass = 'processing';
 
-            if (status === 'done') { statusText = '✅ Concluído'; statusClass = 'online'; }
-            else if (status === 'error') { statusText = '❌ Erro'; statusClass = 'offline'; }
-            else if (status === 'cancelled') { statusText = '🛑 Cancelado'; statusClass = 'text-slate-400'; }
-            else if (status === 'idle') { statusText = '⏸️ Pronto'; statusClass = 'text-slate-400'; }
+                if ( status === 'done' ) { statusText = '✅ Concluído'; statusClass = 'online'; }
+                else if ( status === 'error' ) { statusText = '❌ Erro'; statusClass = 'offline'; }
+                else if ( status === 'cancelled' ) { statusText = '🛑 Cancelado'; statusClass = 'text-slate-400'; }
+                else if ( status === 'idle' ) { statusText = '⏸️ Pronto'; statusClass = 'text-slate-400'; }
 
-            document.getElementById('history-content').innerHTML = `
+                document.getElementById( 'history-content' ).innerHTML = `
                 <div class="p-2 bg-slate-800/50 rounded-lg">
-                    <div class="font-medium text-white truncate">${sanitize(filename)}</div>
-                    <div class="${statusClass} text-xs mt-1">${statusText}</div>
+                    <div class="font-medium text-white truncate">${ sanitize( filename ) }</div>
+                    <div class="${ statusClass } text-xs mt-1">${ statusText }</div>
                 </div>
             `;
-        }
-
-        function showProcessingUI() {
-            isProcessing = true;
-            document.getElementById('start-btn').classList.add('hidden');
-            document.getElementById('stop-btn').classList.remove('hidden');
-            document.getElementById('process-status').textContent = 'Processando...';
-            document.getElementById('process-status').className = 'font-medium processing';
-        }
-
-        function hideProcessingUI() {
-            isProcessing = false;
-            document.getElementById('start-btn').classList.remove('hidden');
-            document.getElementById('stop-btn').classList.add('hidden');
-            document.getElementById('process-status').textContent = 'Aguardando';
-            document.getElementById('process-status').className = 'font-medium text-slate-300';
-            document.getElementById('process-step').textContent = '--';
-        }
-
-        function addLog(text) {
-            const console = document.getElementById('console');
-            const line = document.createElement('div');
-            line.textContent = text;
-            console.appendChild(line);
-            console.scrollTop = console.scrollHeight;
-
-            const count = console.querySelectorAll('div').length;
-            document.getElementById('log-count').textContent = `${count} linhas`;
-        }
-
-        function sanitize(str) {
-            return String(str).replace(/[<>]/g, '').replace(/'/g, "\\'");
-        }
-
-        // =====================
-        // MODE
-        // =====================
-        function setMode(m) {
-            mode = m;
-            const btnUrl = document.getElementById('tab-url');
-            const btnAutonomous = document.getElementById('tab-autonomous');
-            const btnFile = document.getElementById('tab-file');
-            const input = document.getElementById('input-val');
-            const browse = document.getElementById('browse-btn');
-            const startBtnText = document.getElementById('start-btn-text');
-
-            // Reset all tabs
-            [btnUrl, btnAutonomous, btnFile].forEach(b => {
-                b.className = "flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-            });
-
-            if (m === 'url') {
-                btnUrl.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
-                input.placeholder = "Cole a URL do YouTube...";
-                browse.classList.add('hidden');
-                startBtnText.textContent = "GERAR CLIPS";
-            } else if (m === 'autonomous') {
-                btnAutonomous.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-cyan-600 text-white transition-all";
-                input.placeholder = "Cole link do artigo ou site...";
-                browse.classList.remove('hidden');
-                startBtnText.textContent = "GERAÇÃO AUTÔNOMA";
-            } else {
-                btnFile.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
-                input.placeholder = "Selecione um arquivo de vídeo...";
-                browse.classList.remove('hidden');
-                startBtnText.textContent = "GERAR CLIPS";
             }
-        }
 
-        async function browseFile() {
-            try {
-                const res = await fetch('/browse');
-                const data = await res.json();
-                if (data.path) {
-                    document.getElementById('input-val').value = data.path;
+            function showProcessingUI ()
+            {
+                isProcessing = true;
+                document.getElementById( 'start-btn' ).classList.add( 'hidden' );
+                document.getElementById( 'stop-btn' ).classList.remove( 'hidden' );
+                document.getElementById( 'process-status' ).textContent = 'Processando...';
+                document.getElementById( 'process-status' ).className = 'font-medium processing';
+            }
+
+            function hideProcessingUI ()
+            {
+                isProcessing = false;
+                document.getElementById( 'start-btn' ).classList.remove( 'hidden' );
+                document.getElementById( 'stop-btn' ).classList.add( 'hidden' );
+                document.getElementById( 'process-status' ).textContent = 'Aguardando';
+                document.getElementById( 'process-status' ).className = 'font-medium text-slate-300';
+                document.getElementById( 'process-step' ).textContent = '--';
+            }
+
+            function addLog ( text )
+            {
+                const console = document.getElementById( 'console' );
+                const line = document.createElement( 'div' );
+                line.textContent = text;
+                console.appendChild( line );
+                console.scrollTop = console.scrollHeight;
+
+                const count = console.querySelectorAll( 'div' ).length;
+                document.getElementById( 'log-count' ).textContent = `${ count } linhas`;
+            }
+
+            function sanitize ( str )
+            {
+                return String( str ).replace( /[<>]/g, '' ).replace( /'/g, "\\'" );
+            }
+
+            // =====================
+            // MODE
+            // =====================
+            function setMode ( m )
+            {
+                mode = m;
+                const btnUrl = document.getElementById( 'tab-url' );
+                const btnAutonomous = document.getElementById( 'tab-autonomous' );
+                const btnFile = document.getElementById( 'tab-file' );
+                const input = document.getElementById( 'input-val' );
+                const browse = document.getElementById( 'browse-btn' );
+                const startBtnText = document.getElementById( 'start-btn-text' );
+
+                // Reset all tabs
+                [ btnUrl, btnAutonomous, btnFile ].forEach( b =>
+                {
+                    b.className = "flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+                } );
+
+                if ( m === 'url' )
+                {
+                    btnUrl.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
+                    input.placeholder = "Cole a URL do YouTube...";
+                    browse.classList.add( 'hidden' );
+                    startBtnText.textContent = "GERAR CLIPS";
+                } else if ( m === 'autonomous' )
+                {
+                    btnAutonomous.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-cyan-600 text-white transition-all";
+                    input.placeholder = "Cole link do artigo ou site...";
+                    browse.classList.remove( 'hidden' );
+                    startBtnText.textContent = "GERAÇÃO AUTÔNOMA";
+                } else
+                {
+                    btnFile.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
+                    input.placeholder = "Selecione um arquivo de vídeo...";
+                    browse.classList.remove( 'hidden' );
+                    startBtnText.textContent = "GERAR CLIPS";
                 }
-            } catch (e) {
-                alert('Erro ao abrir seletor de arquivos');
-            }
-        }
-
-        // =====================
-        // PROCESS CONTROL
-        // =====================
-        async function startProcessing() {
-            const input = document.getElementById('input-val').value.trim();
-            if (!input) {
-                alert('Digite uma URL ou selecione um arquivo!');
-                return;
             }
 
-            // AUTO-DELETE before starting
-            addLog('🗑️ Limpando dados anteriores automaticamente...');
-            try {
-                await fetch('/api/nuke', { method: 'DELETE' });
-                addLog('✅ Limpeza concluída');
-            } catch (e) {
-                addLog('⚠️ Aviso na limpeza');
-            }
-
-            showProcessingUI();
-            updateHistory(input, 'processing');
-
-            try {
-                // Check if it's autonomous mode
-                const endpoint = mode === 'autonomous' ? '/api/generate/autonomous' : '/run';
-
-                const clips = parseInt(document.getElementById('input-clips').value) || 3;
-                const min_duration = parseInt(document.getElementById('input-min-dur').value) || 30;
-                const max_duration = parseInt(document.getElementById('input-max-dur').value) || 60;
-
-                const body = mode === 'autonomous' ?
-                    JSON.stringify({ url: input }) :
-                    JSON.stringify({
-                        mode,
-                        input,
-                        clips,
-                        min_duration,
-                        max_duration,
-                        captions: document.getElementById('check-captions').checked,
-                        broll: document.getElementById('check-broll').checked,
-                        critic: document.getElementById('check-critic').checked
-                    });
-
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: body
-                });
-                const data = await res.json();
-
-                if (data.status === 'error') {
-                    alert(data.message);
-                    hideProcessingUI();
-                    updateHistory(input, 'error');
-                } else {
-                    connectStream();
-                }
-            } catch (e) {
-                alert('Erro de conexão');
-                hideProcessingUI();
-            }
-        }
-
-        async function stopProcessing() {
-            try {
-                await fetch('/api/stop', { method: 'POST' });
-                addLog('🛑 Processo cancelado');
-                hideProcessingUI();
-                updateHistory(document.getElementById('input-val').value, 'cancelled');
-                if (eventSource) {
-                    eventSource.close();
-                    eventSource = null;
-                }
-            } catch (e) {
-                alert('Erro ao cancelar');
-            }
-        }
-
-        function connectStream() {
-            if (eventSource) eventSource.close();
-
-            eventSource = new EventSource('/stream');
-
-            eventSource.onmessage = (e) => {
-                let text = e.data;
-                if (text.startsWith('data: ')) text = text.substring(6);
-                addLog(text);
-
-                const step = document.getElementById('process-step');
-                if (text.includes('STAGE 1')) step.textContent = '📥 Download';
-                if (text.includes('STAGE 2:') && !text.includes('2.5')) step.textContent = '🎙️ Transcrição';
-                if (text.includes('STAGE 3')) step.textContent = '🧠 Análise IA';
-                if (text.includes('STAGE 4')) step.textContent = '✂️ Edição';
-                if (text.includes('STAGE 5') || text.includes('STAGE 6')) step.textContent = '🚀 Finalizando';
-
-                if (text.includes('[PROCESS FINISHED]')) {
-                    eventSource.close();
-                    eventSource = null;
-                    hideProcessingUI();
-                    updateHistory(document.getElementById('input-val').value, text.includes('Sucesso') ? 'done' : 'error');
-                    loadClips();
-                }
-            };
-
-            eventSource.onerror = () => {
-                if (eventSource) {
-                    eventSource.close();
-                    eventSource = null;
-                }
-            };
-        }
-
-        // =====================
-        // CLIP ACTIONS
-        // =====================
-        async function deleteClip(filename) {
-            if (!confirm(`Deletar ${filename}?`)) return;
-            try {
-                await fetch(`/api/exports/delete/${filename}`, { method: 'DELETE' });
-                loadClips();
-            } catch (e) {
-                alert('Erro ao deletar');
-            }
-        }
-
-        async function deleteAllClips() {
-            if (!confirm('Deletar TODOS os clips?')) return;
-            try {
-                await fetch('/api/exports/delete-all', { method: 'DELETE' });
-                loadClips();
-            } catch (e) {
-                alert('Erro');
-            }
-        }
-
-        async function nukeAll() {
-            if (!confirm('☢️ APAGAR TUDO (clips, histórico, cache)?')) return;
-            try {
-                await fetch('/api/nuke', { method: 'DELETE' });
-                document.getElementById('console').innerHTML = '<div>$ Tudo apagado. Sistema resetado.</div>';
-                document.getElementById('history-content').innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum vídeo processado ainda.</div>';
-                loadClips();
-            } catch (e) {
-                alert('Erro');
-            }
-        }
-
-        // =====================
-        // OTHER ACTIONS
-        // =====================
-        async function refreshAll() {
-            await loadHealth();
-            await loadStatus();
-            await loadClips();
-        }
-
-        async function clearLogs() {
-            try {
-                await fetch('/api/logs/clear', { method: 'POST' });
-                document.getElementById('console').innerHTML = '<div>$ Logs limpos</div>';
-                document.getElementById('log-count').textContent = '1 linha';
-            } catch (e) { }
-        }
-
-        // =====================
-        // MODAL
-        // =====================
-        let currentVideoFile = '';
-
-        function openModal(video, title) {
-            currentVideoFile = video;
-            document.getElementById('modal-video').src = `/exports/${video}`;
-            document.getElementById('modal-download').href = `/api/exports/download/${video}`;
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('modal-video').pause();
-            document.getElementById('modal-video').src = '';
-            document.getElementById('modal').style.display = 'none';
-        }
-
-        function toggleVideoPlay() {
-            const video = document.getElementById('modal-video');
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
-            }
-        }
-
-        async function shareVideo() {
-            const videoUrl = `/exports/${currentVideoFile}`;
-            const title = document.getElementById('modal-title').textContent;
-
-            if (navigator.share) {
-                try {
-                    // Try to share with file if supported
-                    const response = await fetch(videoUrl);
-                    const blob = await response.blob();
-                    const file = new File([blob], currentVideoFile, { type: 'video/mp4' });
-
-                    await navigator.share({
-                        title: title,
-                        text: `🎬 ${title}`,
-                        files: [file]
-                    });
-                } catch (err) {
-                    // Fallback to sharing URL
-                    try {
-                        await navigator.share({
-                            title: title,
-                            text: `🎬 ${title}`,
-                            url: window.location.origin + videoUrl
-                        });
-                    } catch (e) {
-                        copyVideoLink();
+            async function browseFile ()
+            {
+                try
+                {
+                    const res = await fetch( '/browse' );
+                    const data = await res.json();
+                    if ( data.path )
+                    {
+                        document.getElementById( 'input-val' ).value = data.path;
                     }
+                } catch ( e )
+                {
+                    alert( 'Erro ao abrir seletor de arquivos' );
                 }
-            } else {
-                copyVideoLink();
             }
-        }
 
-        function copyVideoLink() {
-            const videoUrl = window.location.origin + `/exports/${currentVideoFile}`;
-            navigator.clipboard.writeText(videoUrl).then(() => {
-                const btn = document.getElementById('modal-copy-link');
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '✅ Link Copiado!';
-                btn.classList.add('bg-green-600');
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('bg-green-600');
-                }, 2000);
-            }).catch(() => {
-                alert('Link: ' + videoUrl);
-            });
-        }
+            // =====================
+            // PROCESS CONTROL
+            // =====================
+            async function startProcessing ()
+            {
+                const input = document.getElementById( 'input-val' ).value.trim();
+                if ( !input )
+                {
+                    alert( 'Digite uma URL ou selecione um arquivo!' );
+                    return;
+                }
 
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') closeModal();
-            if (e.key === 'Enter' && !isProcessing && document.activeElement.id === 'input-val') startProcessing();
-        });
-    </script>
-</body>
+                // AUTO-DELETE before starting
+                addLog( '🗑️ Limpando dados anteriores automaticamente...' );
+                try
+                {
+                    await fetch( '/api/nuke', { method: 'DELETE' } );
+                    addLog( '✅ Limpeza concluída' );
+                } catch ( e )
+                {
+                    addLog( '⚠️ Aviso na limpeza' );
+                }
+
+                showProcessingUI();
+                updateHistory( input, 'processing' );
+
+                try
+                {
+                    // Check if it's autonomous mode
+                    const endpoint = mode === 'autonomous' ? '/api/generate/autonomous' : '/run';
+
+                    const clips = parseInt( document.getElementById( 'input-clips' ).value ) || 3;
+                    const min_duration = parseInt( document.getElementById( 'input-min-dur' ).value ) || 30;
+                    const max_duration = parseInt( document.getElementById( 'input-max-dur' ).value ) || 60;
+
+                    const body = mode === 'autonomous' ?
+                        JSON.stringify( { url: input } ) :
+                        JSON.stringify( {
+                            mode,
+                            input,
+                            clips,
+                            min_duration,
+                            max_duration,
+                            captions: document.getElementById( 'check-captions' ).checked,
+                            broll: document.getElementById( 'check-broll' ).checked,
+                            critic: document.getElementById( 'check-critic' ).checked
+                        } );
+
+                    const res = await fetch( endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    } );
+                    const data = await res.json();
+
+                    if ( data.status === 'error' )
+                    {
+                        alert( data.message );
+                        hideProcessingUI();
+                        updateHistory( input, 'error' );
+                    } else
+                    {
+                        connectStream();
+                    }
+                } catch ( e )
+                {
+                    alert( 'Erro de conexão' );
+                    hideProcessingUI();
+                }
+            }
+
+            async function stopProcessing ()
+            {
+                try
+                {
+                    await fetch( '/api/stop', { method: 'POST' } );
+                    addLog( '🛑 Processo cancelado' );
+                    hideProcessingUI();
+                    updateHistory( document.getElementById( 'input-val' ).value, 'cancelled' );
+                    if ( eventSource )
+                    {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                } catch ( e )
+                {
+                    alert( 'Erro ao cancelar' );
+                }
+            }
+
+            function connectStream ()
+            {
+                if ( eventSource ) eventSource.close();
+
+                // Pass skip parameter to avoid receiving logs we already displayed
+                eventSource = new EventSource( `/stream?skip=${ displayedLogCount }` );
+
+                eventSource.onmessage = ( e ) =>
+                {
+                    let text = e.data;
+                    if ( text.startsWith( 'data: ' ) ) text = text.substring( 6 );
+                    addLog( text );
+
+                    const step = document.getElementById( 'process-step' );
+                    if ( text.includes( 'STAGE 1' ) ) step.textContent = '📥 Download';
+                    if ( text.includes( 'STAGE 2:' ) && !text.includes( '2.5' ) ) step.textContent = '🎙️ Transcrição';
+                    if ( text.includes( 'STAGE 3' ) ) step.textContent = '🧠 Análise IA';
+                    if ( text.includes( 'STAGE 4' ) ) step.textContent = '✂️ Edição';
+                    if ( text.includes( 'STAGE 5' ) || text.includes( 'STAGE 6' ) ) step.textContent = '🚀 Finalizando';
+
+                    if ( text.includes( '[PROCESS FINISHED]' ) )
+                    {
+                        eventSource.close();
+                        eventSource = null;
+                        hideProcessingUI();
+                        updateHistory( document.getElementById( 'input-val' ).value, text.includes( 'Sucesso' ) ? 'done' : 'error' );
+                        loadClips();
+                    }
+                };
+
+                eventSource.onerror = () =>
+                {
+                    if ( eventSource )
+                    {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                };
+            }
+
+            // =====================
+            // CLIP ACTIONS
+            // =====================
+            async function deleteClip ( filename )
+            {
+                if ( !confirm( `Deletar ${ filename }?` ) ) return;
+                try
+                {
+                    await fetch( `/api/exports/delete/${ filename }`, { method: 'DELETE' } );
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro ao deletar' );
+                }
+            }
+
+            async function deleteAllClips ()
+            {
+                if ( !confirm( 'Deletar TODOS os clips?' ) ) return;
+                try
+                {
+                    await fetch( '/api/exports/delete-all', { method: 'DELETE' } );
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro' );
+                }
+            }
+
+            async function nukeAll ()
+            {
+                if ( !confirm( '☢️ APAGAR TUDO (clips, histórico, cache)?' ) ) return;
+                try
+                {
+                    await fetch( '/api/nuke', { method: 'DELETE' } );
+                    document.getElementById( 'console' ).innerHTML = '<div>$ Tudo apagado. Sistema resetado.</div>';
+                    document.getElementById( 'history-content' ).innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum vídeo processado ainda.</div>';
+                    loadClips();
+                } catch ( e )
+                {
+                    alert( 'Erro' );
+                }
+            }
+
+            // =====================
+            // OTHER ACTIONS
+            // =====================
+            async function refreshAll ()
+            {
+                await loadHealth();
+                await loadStatus();
+                await loadClips();
+            }
+
+            async function clearLogs ()
+            {
+                try
+                {
+                    await fetch( '/api/logs/clear', { method: 'POST' } );
+                    document.getElementById( 'console' ).innerHTML = '<div>$ Logs limpos</div>';
+                    document.getElementById( 'log-count' ).textContent = '1 linha';
+                } catch ( e ) { }
+            }
+
+            // =====================
+            // MODAL
+            // =====================
+            let currentVideoFile = '';
+
+            function openModal ( video, title )
+            {
+                currentVideoFile = video;
+                document.getElementById( 'modal-video' ).src = `/exports/${ video }`;
+                document.getElementById( 'modal-download' ).href = `/api/exports/download/${ video }`;
+                document.getElementById( 'modal-title' ).textContent = title;
+                document.getElementById( 'modal' ).style.display = 'flex';
+            }
+
+            function closeModal ()
+            {
+                document.getElementById( 'modal-video' ).pause();
+                document.getElementById( 'modal-video' ).src = '';
+                document.getElementById( 'modal' ).style.display = 'none';
+            }
+
+            function toggleVideoPlay ()
+            {
+                const video = document.getElementById( 'modal-video' );
+                if ( video.paused )
+                {
+                    video.play();
+                } else
+                {
+                    video.pause();
+                }
+            }
+
+            async function shareVideo ()
+            {
+                const videoUrl = `/exports/${ currentVideoFile }`;
+                const title = document.getElementById( 'modal-title' ).textContent;
+
+                if ( navigator.share )
+                {
+                    try
+                    {
+                        // Try to share with file if supported
+                        const response = await fetch( videoUrl );
+                        const blob = await response.blob();
+                        const file = new File( [ blob ], currentVideoFile, { type: 'video/mp4' } );
+
+                        await navigator.share( {
+                            title: title,
+                            text: `🎬 ${ title }`,
+                            files: [ file ]
+                        } );
+                    } catch ( err )
+                    {
+                        // Fallback to sharing URL
+                        try
+                        {
+                            await navigator.share( {
+                                title: title,
+                                text: `🎬 ${ title }`,
+                                url: window.location.origin + videoUrl
+                            } );
+                        } catch ( e )
+                        {
+                            copyVideoLink();
+                        }
+                    }
+                } else
+                {
+                    copyVideoLink();
+                }
+            }
+
+            function copyVideoLink ()
+            {
+                const videoUrl = window.location.origin + `/exports/${ currentVideoFile }`;
+                navigator.clipboard.writeText( videoUrl ).then( () =>
+                {
+                    const btn = document.getElementById( 'modal-copy-link' );
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✅ Link Copiado!';
+                    btn.classList.add( 'bg-green-600' );
+                    setTimeout( () =>
+                    {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove( 'bg-green-600' );
+                    }, 2000 );
+                } ).catch( () =>
+                {
+                    alert( 'Link: ' + videoUrl );
+                } );
+            }
+
+            document.addEventListener( 'keydown', e =>
+            {
+                if ( e.key === 'Escape' ) closeModal();
+                if ( e.key === 'Enter' && !isProcessing && document.activeElement.id === 'input-val' ) startProcessing();
+            } );
+        </script>
+    </body>
 
 </html>

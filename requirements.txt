@@ -1,64 +1,35 @@
 # ===========================================
-# AI Video Clipper - Dependências (Compatibilidade Máxima)
+# AI Video Clipper - Dependências
 # ===========================================
 
 # Core
 flask
 flask-cors
-markitdown
-crawl4ai
-playwright
-crewai
-langchain-openai
-langchain-ollama
 python-dotenv
+pyngrok
 
 # Download de Vídeos
 yt-dlp>=2024.0.0
 
-# Transcrição
-# openai-whisper (Installed via git)
-# whisperx (Incompatible with Python 3.14)
-# openai>=1.0.0
-vosk
-# google-generativeai>=0.3.0
+# Transcrição (Whisper tiny)
+openai-whisper
 
 # IA / ML
-transformers
 torch
-sentencepiece
+numpy
 
 # Processamento de Vídeo
-moviepy<2.0.0
+moviepy==1.0.3
 ffmpeg-python
 opencv-python
 Pillow
 
 # Análise de Áudio
-librosa
 pydub
-noisereduce
-soundfile
-
-# NLP
-nltk
-spacy
 
 # Utils
 requests
 tqdm
-numpy
-pandas
-
-# Testes
-pytest
-pytest-cov
 
 # Voz / TTS
-# edge-tts>=6.1.9
-kokoro-onnx
-soundfile
-onnxruntime
-
-# Identidade Visual / Thumbnails
-rembg
+gTTS

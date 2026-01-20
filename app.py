@@ -13,7 +13,6 @@ import json
 import shutil
 from datetime import datetime
 
-from src.core.factory import get_factory
 from src.core.state_manager import StateManager
 from src.core.config import Config
 
@@ -303,7 +302,8 @@ def list_clips():
         if f.startswith('clip_') and f.endswith('.mp4'):
             parts = f.split('_')
             if len(parts) >= 2:
-                idx = parts[1]
+                # Extract index properly: clip_01.mp4 -> 01
+                idx = parts[1].replace('.mp4', '').split('_')[0]
                 if idx not in clips:
                     clips[idx] = {}
                 clips[idx]['video'] = f
@@ -458,23 +458,18 @@ def run_clipper():
 
     cmd.extend([
         '--clips', str(data.get('clips', 3)),
-        '--min-duration', str(data.get('min_duration', 30)),
-        '--max-duration', str(data.get('max_duration', 60)),
-        '--whisper-model', data.get('whisper_model', 'tiny')
+        '--min', str(data.get('min_duration', 60)),  # Fixed: --min instead of --min-duration
+        '--max', str(data.get('max_duration', 90))   # Fixed: --max instead of --max-duration
     ])
 
     if data.get('captions', True):
         cmd.append('--captions')
-    
-    if data.get('broll', True):
-        cmd.append('--broll')
-        
-    if data.get('critic', True):
-        cmd.append('--critic')
 
-    # Variants (always off by default unless specified)
-    if data.get('variants', False):
-        cmd.append('--variants')
+    # Optional: Voice/Narrator (if Web UI supports it in future, currently logic was missing)
+    # if data.get('voice', False):
+    #     cmd.append('--voice')
+
+    # Removed unsupported args: --whisper-model, --broll, --critic, --variants
 
     try:
         # Ensure subprocess inherits full environment (especially PATH for ffmpeg)
@@ -529,8 +524,10 @@ def force_stop():
 @app.route('/stream')
 def stream_logs():
     """Stream de logs em tempo real via SSE"""
+    skip = request.args.get('skip', 0, type=int)  # Skip first N logs
+
     def generate():
-        current_idx = 0
+        current_idx = max(0, skip)  # Start from skip index
         max_wait = 300  # 5 min timeout
         wait_counter = 0
 

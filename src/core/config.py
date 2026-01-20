@@ -1,122 +1,52 @@
 """
-Configuração centralizada do sistema
+Configuração Centralizada (Otimizada e Completa)
+100% Local, Zero Custos
 """
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Carregar variáveis de ambiente
+# Carregar .env se existir
 load_dotenv()
-
-# =====================
-# FFmpeg Injection
-# =====================
-try:
-    import imageio_ffmpeg
-    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-    ffmpeg_dir = os.path.dirname(ffmpeg_exe)
-    if ffmpeg_dir not in os.environ["PATH"]:
-        os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
-
-    # Configure pydub
-    try:
-        from pydub import AudioSegment
-        AudioSegment.converter = ffmpeg_exe
-        AudioSegment.ffmpeg = ffmpeg_exe
-        
-        # Detectar ffprobe baseado na plataforma
-        import sys
-        ffprobe_name = "ffprobe.exe" if sys.platform == "win32" else "ffprobe"
-        AudioSegment.ffprobe = os.path.join(ffmpeg_dir, ffprobe_name)
-    except:
-        pass
-except ImportError:
-    pass
-
-# =====================
-# Sys Path Injection (Module Fallback)
-# =====================
-# Adiciona site-packages do sistema caso módulos estejam faltando no venv
-import sys
-# Detectar site-packages do sistema de forma dinâmica (opcional, mas evita caminhos fixos)
-if sys.platform == "win32":
-    # Tentar localizar pasta de instalação do Python no Windows
-    python_base = os.path.dirname(sys.executable)
-    system_site_packages = os.path.join(python_base, 'Lib', 'site-packages')
-    if os.path.exists(system_site_packages) and system_site_packages not in sys.path:
-        sys.path.append(system_site_packages)
-else:
-    # No Linux, o venv geralmente já lida bem com isso, mas podemos adicionar se necessário
-    pass
 
 class Config:
     """Configurações centralizadas do sistema"""
 
-    # Diretórios Base
+    # Diretórios
     BASE_DIR = Path(__file__).parent.parent.parent
     SRC_DIR = BASE_DIR / "src"
     TEMP_DIR = BASE_DIR / os.getenv("TEMP_DIR", "temp")
     EXPORT_DIR = BASE_DIR / os.getenv("EXPORT_DIR", "exports")
-    ASSETS_DIR = BASE_DIR / os.getenv("ASSETS_DIR", "src/assets")
+    ASSETS_DIR = BASE_DIR / "src" / "assets"
 
-    # Whisper (Transcrição Local)
-    WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
+    # Ollama (IA Local)
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+
+    # Transcrição
     WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "pt")
-
-    # IA Local
-    USE_LOCAL_AI = os.getenv("USE_LOCAL_AI", "true").lower() == "true"
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+    WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 
     # Vídeo
-    CLIP_DURATION_MIN = int(os.getenv("CLIP_DURATION_MIN", 60))
-    CLIP_DURATION_MAX = int(os.getenv("CLIP_DURATION_MAX", 90))
-    VIDEO_FPS = int(os.getenv("VIDEO_FPS", 30))
-    VIDEO_QUALITY = os.getenv("VIDEO_QUALITY", "high")
-    OUTPUT_RESOLUTION = tuple(map(int, os.getenv("OUTPUT_RESOLUTION", "1080x1920").split("x")))
-
-    # Edição
-    FACE_TRACKING_ENABLED = os.getenv("FACE_TRACKING_ENABLED", "true").lower() == "true"
-    DYNAMIC_CAPTIONS_ENABLED = os.getenv("DYNAMIC_CAPTIONS_ENABLED", "true").lower() == "true"
-    BROLL_ENABLED = os.getenv("BROLL_ENABLED", "true").lower() == "true"
-
-    # Áudio
-    AUDIO_EMOTION_DETECTION = os.getenv("AUDIO_EMOTION_DETECTION", "true").lower() == "true"
-    VOLUME_THRESHOLD = float(os.getenv("VOLUME_THRESHOLD", 0.7))
-
-    # Agente Crítico
-    CRITIC_ENABLED = os.getenv("CRITIC_ENABLED", "true").lower() == "true"
-    CRITIC_MIN_SCORE = float(os.getenv("CRITIC_MIN_SCORE", 8.0))
-    MAX_REFINEMENT_LOOPS = int(os.getenv("MAX_REFINEMENT_LOOPS", 3))
+    VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))
+    OUTPUT_RESOLUTION = (1080, 1920)  # 9:16 para viral
+    CLIP_DURATION_MIN = int(os.getenv("CLIP_DURATION_MIN", "60"))
+    CLIP_DURATION_MAX = int(os.getenv("CLIP_DURATION_MAX", "90"))
 
     # Debug
     DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    SSL_VERIFY = os.getenv("SSL_VERIFY", "true").lower() == "true"
-    LOCAL_MODE = os.getenv("LOCAL_MODE", "false").lower() == "true"
-
-    # Pexels API (B-Rolls)
-    PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
-
-    # OpenAI
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
     @classmethod
     def ensure_directories(cls):
-        """Cria os diretórios necessários se não existirem"""
+        """Cria diretórios necessários"""
         cls.TEMP_DIR.mkdir(exist_ok=True, parents=True)
         cls.EXPORT_DIR.mkdir(exist_ok=True, parents=True)
-        cls.ASSETS_DIR.mkdir(exist_ok=True, parents=True)
-        (cls.ASSETS_DIR / "fonts").mkdir(exist_ok=True)
-        (cls.ASSETS_DIR / "overlays").mkdir(exist_ok=True)
-        (cls.ASSETS_DIR / "sounds").mkdir(exist_ok=True)
 
-    @classmethod
-    def get_quality_settings(cls):
-        """Retorna configurações de qualidade de vídeo"""
-        quality_map = {
-            "low": {"bitrate": "1000k", "audio_bitrate": "128k"},
-            "medium": {"bitrate": "2500k", "audio_bitrate": "192k"},
-            "high": {"bitrate": "5000k", "audio_bitrate": "256k"},
-            "ultra": {"bitrate": "8000k", "audio_bitrate": "320k"}
-        }
-        return quality_map.get(cls.VIDEO_QUALITY, quality_map["high"])
+        # Assets subdirs
+        if cls.ASSETS_DIR.exists():
+            (cls.ASSETS_DIR / "fonts").mkdir(exist_ok=True)
+            (cls.ASSETS_DIR / "sounds").mkdir(exist_ok=True)
+
+# Instância global
+config = Config()

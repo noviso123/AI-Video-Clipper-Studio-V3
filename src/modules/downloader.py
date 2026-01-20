@@ -82,6 +82,9 @@ class VideoDownloader:
                 logger.info("⏳ Baixando vídeo...")
                 info = ydl.extract_info(url, download=True)
 
+                if not info:
+                    raise ValueError(f"Falha ao extrair informações do vídeo: {url}")
+
                 metadata = {
                     'title': info.get('title') or info.get('alt_title') or 'Unknown Title',
                     'duration': info.get('duration', 0),
