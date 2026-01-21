@@ -1,5 +1,10 @@
 """
-Telegram Bot para AI Video Clipper (Corrigido & Atualizado)
+Telegram Bot para AI Video Clipper (Versão 3.0 - Ultimate)
+Funcionalidades:
+- Upload de arquivos de vídeo diretos
+- Menu de Configurações (/settings) persistente
+- Controle total de parâmetros via UI
+- Progresso em tempo real
 """
 import os
 import sys
@@ -8,7 +13,13 @@ import logging
 import subprocess
 import shutil
 import signal
+import json
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente explicitamente
+load_dotenv()
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, filters
@@ -18,431 +29,398 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler("bot_output.log"),
+        logging.FileHandler("bot_output.log", encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("TelegramBot")
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+# Add src to path para garantir consistência
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.append(str(PROJECT_ROOT))
+CONFIG_FILE = "bot_users.json"
 
 class VideoClipperBot:
     def __init__(self, token: str):
         self.app = ApplicationBuilder().token(token).build()
         self.active_processes = {}  # chat_id -> process
-        self.pending_approvals = {}  # chat_id -> {video_path, metadata}
+        self.user_configs = self._load_config()
 
         # Handlers
         self.app.add_handler(CommandHandler("start", self.start))
-        self.app.add_handler(CommandHandler("clip", self.clip_command))
-        self.app.add_handler(CommandHandler("nuke", self.nuke_command))
-        self.app.add_handler(CommandHandler("system", self.system_info_command))
-        self.app.add_handler(CommandHandler("history", self.history_command))
+        self.app.add_handler(CommandHandler("help", self.help_command))
+        self.app.add_handler(CommandHandler("settings", self.settings_command))
         self.app.add_handler(CommandHandler("cancel", self.cancel_command))
-        self.app.add_handler(CommandHandler("restart", self.restart_command))
+        self.app.add_handler(CommandHandler("status", self.status_command))
         self.app.add_handler(CommandHandler("logs", self.logs_command))
+        self.app.add_handler(CommandHandler("nuke", self.nuke_command))
+
+        # Mensagens e Arquivos
+        self.app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, self.handle_video))
         self.app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
 
+    def _load_config(self):
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, 'r') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def _save_config(self):
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(self.user_configs, f)
+
+    def _get_user_config(self, chat_id):
+        str_id = str(chat_id)
+        if str_id not in self.user_configs:
+            self.user_configs[str_id] = {
+                'clips': 3,
+                'min': 30,
+                'max': 60,
+                'captions': True,
+                'voice': False
+            }
+            self._save_config()
+        return self.user_configs[str_id]
+
     def run(self):
         logger.info("🤖 Bot Iniciado! Aguardando mensagens...")
+        print("✅ Telegram Bot Online (V3 Ultimate). Pressione Ctrl+C para parar.")
         self.app.run_polling()
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user.first_name
+
         keyboard = [
-            [InlineKeyboardButton("🔄 Reiniciar Sistema", callback_data='system_restart')],
-            [InlineKeyboardButton("📜 Ver Logs", callback_data='view_logs')],
-            [InlineKeyboardButton("❔ Ajuda", callback_data='help_info')]
+            [InlineKeyboardButton("⚙️ Configurações", callback_data='settings_menu')],
+            [InlineKeyboardButton("📝 Comandos", callback_data='help_info')],
+            [InlineKeyboardButton("📜 Logs", callback_data='view_logs')]
         ]
 
+        welcome_msg = (
+            f"👋 **Olá, {user}!**\n\n"
+            "🎬 **AI Video Clipper Studio V3 (Ultimate)**\n"
+            "Eu sou seu assistente de produção de conteúdo.\n\n"
+            "🚀 **Funcionalidades:**\n"
+            "• Envie **Links** (YouTube/TikTok)\n"
+            "• Envie **Vídeos** (Upload direto)\n"
+            "• Configure preferências em `/settings`\n\n"
+            "👇 **Menu Principal:**"
+        )
+
         await update.message.reply_text(
-            "🎬 **AI Video Clipper Bot** (100% Local)\n\n"
-            "Envie um link de vídeo para começar!\n"
-            "Ou use: `/clip <url>`\n\n"
-            "**Painel de Controle:**",
+            welcome_msg,
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        text = update.message.text
-        if text.startswith("http"):
-            await self.process_url(update, context, text)
-        else:
-            await update.message.reply_text("⚠️ Envie um link válido (YouTube, TikTok, etc).")
-
-    async def logs_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        try:
-            log_path = Path("bot_output.log")
-            if log_path.exists():
-                with open(log_path, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()[-15:]
-                log_content = "".join(lines) or "Log vazio."
-            else:
-                log_content = "Arquivo de log não encontrado."
-
-            await update.message.reply_text(
-                f"📜 **Últimos Logs:**\n\n```\n{log_content[-2000:]}\n```",
-                parse_mode=ParseMode.MARKDOWN
-            )
-        except Exception as e:
-            await update.message.reply_text(f"⚠️ Erro ao ler logs: {e}")
-
-    async def restart_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text("🔄 **Reiniciando Sistema...**\n\nAguarde...")
-        await self._perform_restart()
-
-    async def _perform_restart(self):
-        # Cleanup processos
-        for chat_id, process in self.active_processes.items():
-            try:
-                process.terminate()
-                await process.wait()
-            except:
-                pass
-
-        logger.info("Reiniciando bot...")
-        await asyncio.sleep(1)
-        os.execl(sys.executable, sys.executable, *sys.argv)
-
-    async def cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def settings_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
-        process = self.active_processes.get(chat_id)
+        config = self._get_user_config(chat_id)
+        await self._show_settings_menu(update, context, config)
 
-        if process:
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=5.0)
-                except asyncio.TimeoutError:
-                    pass
+    async def _show_settings_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE, config: dict, is_edit=False):
+        # Emojis de status
+        e_captions = "✅" if config['captions'] else "❌"
+        e_voice = "✅" if config['voice'] else "❌"
 
-                del self.active_processes[chat_id]
-                await update.message.reply_text("🛑 **Processo cancelado!**")
-            except Exception as e:
-                logger.error(f"Erro ao cancelar: {e}")
-                await update.message.reply_text("⚠️ Erro ao cancelar processo.")
-        else:
-            await update.message.reply_text("⚠️ Nenhum processo ativo.")
-
-    async def clip_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not context.args:
-            await update.message.reply_text(
-                "⚠️ **Uso:** `/clip <url> [opções]`\n\n"
-                "**Opções:**\n"
-                "`--clips N` - Número de clipes (padrão 3)\n"
-                "`--min N` - Duração mínima (s)\n"
-                "`--max N` - Duração máxima (s)\n"
-                "`--captions` - Adicionar legendas\n"
-                "`--voice` - Adicionar narração\n\n"
-                "**Exemplo:** `/clip <url> --clips 3 --captions`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        url = context.args[0]
-        params = self._parse_clip_args(context.args[1:])
-        await self.process_url(update, context, url, params)
-
-    def _parse_clip_args(self, args_list: list) -> dict:
-        """Parse flags do comando /clip"""
-        params = {
-            'clips': 3,
-            'min': 30,
-            'max': 60,
-            'captions': False,
-            'voice': False
-        }
-
-        try:
-            for i, arg in enumerate(args_list):
-                if arg == '--clips' and i + 1 < len(args_list):
-                    params['clips'] = int(args_list[i+1])
-                elif arg == '--min' and i + 1 < len(args_list):
-                    params['min'] = int(args_list[i+1])
-                elif arg == '--max' and i + 1 < len(args_list):
-                    params['max'] = int(args_list[i+1])
-                elif arg == '--captions':
-                    params['captions'] = True
-                elif arg == '--voice':
-                    params['voice'] = True
-        except Exception as e:
-            logger.error(f"Erro ao parsear args: {e}")
-
-        return params
-
-    async def nuke_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text("☢️ **NUKE INICIADO...**\n\nLimpando sistema...")
-
-        # Parar processos
-        for chat_id, process in list(self.active_processes.items()):
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-            except:
-                pass
-        self.active_processes.clear()
-
-        # Limpar arquivos
-        for d in [Path("temp"), Path("exports")]:
-            if d.exists():
-                shutil.rmtree(d)
-                d.mkdir()
-
-        for f in ["bot_output.log", "state.json"]:
-            if os.path.exists(f):
-                try:
-                    os.remove(f)
-                except:
-                    pass
-
-        await update.message.reply_text("✅ **Sistema resetado!**")
-
-    async def system_info_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        try:
-            import platform
-            import psutil
-
-            cpu_usage = psutil.cpu_percent()
-            mem = psutil.virtual_memory()
-            disk = psutil.disk_usage('.')
-
-            info = (
-                f"🖥️ **Info do Sistema:**\n\n"
-                f"**Plataforma:** {platform.system()} {platform.release()}\n"
-                f"**CPU:** {cpu_usage}%\n"
-                f"**Memória:** {mem.percent}% ({mem.used//1024**2}MB)\n"
-                f"**Disco:** {disk.percent}% livre\n"
-                f"**Clipes:** {len(list(Path('exports').glob('*.mp4'))) if Path('exports').exists() else 0}"
-            )
-            await update.message.reply_text(info, parse_mode=ParseMode.MARKDOWN)
-        except Exception as e:
-            await update.message.reply_text(f"⚠️ Erro: {e}")
-
-    async def history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        export_dir = Path("exports")
-        if not export_dir.exists():
-            await update.message.reply_text("📂 Histórico vazio.")
-            return
-
-        videos = sorted(list(export_dir.glob("clip_*.mp4")), key=os.path.getmtime, reverse=True)[:10]
-        if not videos:
-            await update.message.reply_text("📂 Nenhum clipe encontrado.")
-            return
-
-        msg = "📜 **Últimos 10 Clipes:**\n\n"
-        for i, vid in enumerate(videos, 1):
-            size = vid.stat().st_size / (1024*1024)
-            msg += f"{i}. `{vid.name}` ({size:.1f} MB)\n"
-
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
-
-    async def process_url(self, update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, params: dict = None):
-        chat_id = update.effective_chat.id
-        params = params or {}
-
-        if chat_id in self.active_processes:
-            await update.message.reply_text(
-                "⚠️ **Processamento em andamento!**\n\n"
-                "Use /cancel para parar antes de iniciar outro."
-            )
-            return
-
-        status_msg = await update.message.reply_text(
-            f"⏳ **Processando:** {url}\n\nIsso pode levar alguns minutos..."
-        )
-
-        # Comando main.py atualizado
-        cmd = [
-            sys.executable, "main.py",
-            "--url", url,
-            "--clips", str(params.get('clips', 3)),
-            "--min", str(params.get('min', 30)),
-            "--max", str(params.get('max', 60))
+        keyboard = [
+            [
+                InlineKeyboardButton(f"Legendas {e_captions}", callback_data='toggle_captions'),
+                InlineKeyboardButton(f"Narração {e_voice}", callback_data='toggle_voice')
+            ],
+            [
+                InlineKeyboardButton(f"Clipes: {config['clips']}", callback_data='cycle_clips'),
+                InlineKeyboardButton(f"Tempo: {config['min']}-{config['max']}s", callback_data='cycle_duration')
+            ],
+            [InlineKeyboardButton("💾 Salvar & Fechar", callback_data='close_settings')]
         ]
 
-        if params.get('captions'):
-            cmd.append("--captions")
-        if params.get('voice'):
-            cmd.append("--voice")
+        text = (
+            "⚙️ **Painel de Configurações**\n\n"
+            f"📝 **Legendas:** {e_captions}\n"
+            f"🗣️ **Narração:** {e_voice}\n"
+            f"✂️ **Qtd. Clipes:** {config['clips']}\n"
+            f"⏱️ **Duração:** {config['min']}s a {config['max']}s"
+        )
 
-        logger.info(f"🚀 Executando: {' '.join(cmd)}")
+        if is_edit:
+            await update.callback_query.edit_message_text(
+                text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        else:
+            await update.message.reply_text(
+                text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        help_text = (
+            "ℹ️ **Guia Ultimate:**\n\n"
+            "1️⃣ **Links**: Cole um link do YouTube ou TikTok.\n"
+            "2️⃣ **Arquivos**: Envie um vídeo .mp4 direto para o chat.\n"
+            "3️⃣ **Config**: Use `/settings` para ajustar legendas e duração.\n\n"
+            "🛠️ **Comandos:**\n"
+            "`/cancel` - Parar\n"
+            "`/status` - Monitorar recursos\n"
+            "`/logs` - Ver debug\n"
+            "`/nuke` - Limpar tudo"
+        )
+        await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+
+    async def handle_video(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Lida com upload de arquivos de vídeo"""
+        chat_id = update.effective_chat.id
+        video = update.message.video or update.message.document
+
+        if not video:
+            await update.message.reply_text("⚠️ Arquivo inválido.")
+            return
+
+        file_id = video.file_id
+
+        status_msg = await update.message.reply_text("📥 **Baixando vídeo enviado...**")
 
         try:
+            new_file = await context.bot.get_file(file_id)
+
+            # Salvar em temp
+            temp_dir = PROJECT_ROOT / "temp"
+            temp_dir.mkdir(exist_ok=True)
+
+            file_path = temp_dir / f"upload_{file_id}.mp4"
+            await new_file.download_to_drive(file_path)
+
+            await status_msg.edit_text("✅ Download concluído! Iniciando processamento...")
+
+            # Iniciar processamento via arquivo local
+            await self.process_clipper(update, context, file_path=str(file_path), status_msg=status_msg)
+
+        except Exception as e:
+            logger.error(f"Erro no download: {e}")
+            await status_msg.edit_text(f"❌ Erro ao baixar vídeo (Limite de 20MB da API Telegram?): {e}")
+
+    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        text = update.message.text.strip()
+
+        # Ignorar mensagens sem link
+        if "http" not in text:
+            await update.message.reply_text("⚠️ Envie um **link**, um **arquivo de vídeo** ou use `/settings`.")
+            return
+
+        url = next((w for w in text.split() if w.startswith("http")), None)
+        if not url: return
+
+        await self.process_clipper(update, context, url=url)
+
+    async def process_clipper(self, update: Update, context: ContextTypes.DEFAULT_TYPE, url=None, file_path=None, status_msg=None):
+        chat_id = update.effective_chat.id
+        config = self._get_user_config(chat_id)
+
+        if chat_id in self.active_processes:
+            await update.message.reply_text("⚠️ Processo em andamento. Use /cancel.")
+            return
+
+        if not status_msg:
+            status_msg = await update.message.reply_text(f"⏳ **Iniciando IA...**\nConfig: {config['clips']} clipes")
+
+        # Construir comando
+        cmd = [sys.executable, "main.py"]
+
+        if url:
+            cmd.extend(["--url", url])
+        elif file_path:
+            cmd.extend(["--file", file_path])
+
+        # Aplicar Configurações do Usuário
+        cmd.extend(["--clips", str(config['clips'])])
+        cmd.extend(["--min", str(config['min'])])
+        cmd.extend(["--max", str(config['max'])])
+
+        if config['captions']:
+            cmd.append("--captions")
+        if config['voice']:
+            cmd.append("--voice")
+
+        logger.info(f"🚀 Iniciando processo {chat_id}: {' '.join(cmd)}")
+
+        try:
+            # Usar cwd para garantir que imports funcionem
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
-                preexec_fn=os.setsid
+                cwd=str(PROJECT_ROOT),
+                env={**os.environ, "PYTHONIOENCODING": "utf-8"}
             )
 
             self.active_processes[chat_id] = process
-
-            # Monitorar saída
-            final_video_path = None
+            final_files = []
+            last_progress_text = ""
 
             while True:
-                line = await process.stdout.readline()
-                if not line:
+                line_bytes = await process.stdout.readline()
+                if not line_bytes:
                     break
 
-                line_text = line.decode('utf-8', errors='ignore').strip()
-                if line_text:
-                    logger.info(f"[CLI] {line_text}")
+                line = line_bytes.decode('utf-8', errors='replace').strip()
+                if not line: continue
 
-                    # Capturar caminho do clipe
-                    if "gerado com sucesso:" in line_text:
+                # Logar progresso para debug
+                # logger.info(f"[Main.py] {line}")
+
+                progress, stage_name = self._parse_progress(line)
+
+                if progress > 0:
+                    bar_len = 10
+                    filled = int(bar_len * progress / 100)
+                    bar = "🟩" * filled + "⬜" * (bar_len - filled)
+
+                    progress_text = (
+                        f"🎬 **Clipper em Ação**\n"
+                        f"{bar} **{progress}%**\n"
+                        f"📌 {stage_name}\n"
+                    )
+
+                    if progress_text != last_progress_text:
                         try:
-                            final_video_path = line_text.split("gerado com sucesso:", 1)[1].strip()
+                            await context.bot.edit_message_text(
+                                chat_id=chat_id,
+                                message_id=status_msg.message_id,
+                                text=progress_text,
+                                parse_mode=ParseMode.MARKDOWN
+                            )
+                            last_progress_text = progress_text
                         except:
                             pass
 
-                    # Atualizar progresso
-                    if "STAGE" in line_text:
-                        progress, stage = self._parse_progress(line_text)
+                if "gerado com sucesso:" in line:
+                    parts = line.split("gerado com sucesso:")
+                    if len(parts) > 1:
+                        final_files.append(Path(parts[1].strip()))
 
-                        bar_filled = int(10 * progress / 100)
-                        bar = "🟩" * bar_filled + "⬜" * (10 - bar_filled)
-
-                        status_text = (
-                            f"⏳ **Processando...**\n"
-                            f"{bar} **{progress}%**\n\n"
-                            f"📌 {stage}"
-                        )
-
-                        try:
-                            if status_text != getattr(self, 'last_status', ''):
-                                await context.bot.edit_message_text(
-                                    chat_id=chat_id,
-                                    message_id=status_msg.message_id,
-                                    text=status_text,
-                                    parse_mode=ParseMode.MARKDOWN
-                                )
-                                self.last_status = status_text
-                        except:
-                            pass
-
-            await process.wait()
-
+            return_code = await process.wait()
             if chat_id in self.active_processes:
                 del self.active_processes[chat_id]
 
-            # Buscar último clipe gerado
-            if not final_video_path:
-                export_dir = Path("exports")
-                clips = sorted(export_dir.glob("clip_*.mp4"), key=os.path.getmtime, reverse=True)
-                if clips:
-                    final_video_path = str(clips[0])
-
-            if final_video_path and os.path.exists(final_video_path):
-                await status_msg.edit_text("✅ **Vídeo Gerado!** Enviando...")
-
-                # Enviar vídeo
-                with open(final_video_path, 'rb') as video_file:
-                    await context.bot.send_video(
-                        chat_id=chat_id,
-                        video=video_file,
-                        caption="✂️ Seu corte viral está pronto!"
-                    )
-
-                # Enviar metadados se existirem
-                meta_path = Path(final_video_path).with_name(
-                    Path(final_video_path).stem.replace('clip', 'meta') + '.json'
-                )
-
-                if meta_path.exists():
-                    try:
-                        import json
-                        with open(meta_path, 'r', encoding='utf-8') as f:
-                            metadata = json.load(f)
-
-                        meta_text = (
-                            f"📝 **Metadados Sugeridos:**\n\n"
-                            f"**Título:** {metadata.get('title', 'N/A')}\n"
-                            f"**Hashtags:** {' '.join(metadata.get('hashtags', []))}\n"
-                            f"**Descrição:** {metadata.get('description', 'N/A')}"
-                        )
-
-                        await context.bot.send_message(
-                            chat_id=chat_id,
-                            text=meta_text,
-                            parse_mode=ParseMode.MARKDOWN
-                        )
-                    except Exception as e:
-                        logger.error(f"Erro ao enviar metadados: {e}")
+            if return_code == 0 and final_files:
+                await status_msg.edit_text("✅ **Concluído!** Enviando clipes...")
+                for fpath in final_files:
+                    if fpath.exists():
+                        caption = f"✨ **{fpath.name}**\nHashtags: #Viral #Shorts"
+                        with open(fpath, 'rb') as vf:
+                            await context.bot.send_video(chat_id, vf, caption=caption, supports_streaming=True)
+                await context.bot.send_message(chat_id, "🚀 **Pronto!** Mande o próximo.")
             else:
-                await status_msg.edit_text("❌ Falha ao gerar vídeo. Use /logs para ver detalhes.")
+                await status_msg.edit_text("❌ Algo deu errado. Use /logs.")
 
         except Exception as e:
-            logger.error(f"Erro no bot: {e}")
-            await status_msg.edit_text(f"❌ Erro: {str(e)}")
+            logger.error(f"Erro fatal: {e}")
+            if chat_id in self.active_processes: del self.active_processes[chat_id]
+            await status_msg.edit_text(f"❌ Erro Crítico: {e}")
 
-    def _parse_progress(self, log_line: str) -> tuple:
-        """Parse progresso do log"""
-        if "STAGE 1" in log_line:
-            return 20, "Download/Carregamento..."
-        if "STAGE 2" in log_line:
-            return 40, "Transcrição (Vosk)..."
-        if "STAGE 3" in log_line:
-            return 60, "Análise Viral (Ollama)..."
-        if "STAGE 4" in log_line:
-            return 90, "Edição 9:16..."
-        if "CONCLUÍDO" in log_line:
-            return 100, "Finalizado!"
-        return 0, "Iniciando..."
+    def _parse_progress(self, line: str):
+        if "STAGE 1" in line: return 10, "Baixando/Lendo..."
+        if "STAGE 2" in line: return 30, "Transcrição IA..."
+        if "STAGE 3" in line: return 50, "Análise Viral..."
+        if "STAGE 4" in line: return 75, "Edição Mágica..."
+        if "Thumb" in line: return 85, "Thumbnails..."
+        if "CONCLUÍDO" in line: return 100, "Finalizando..."
+        return 0, ""
 
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         chat_id = query.message.chat_id
+        data = query.data
 
-        try:
-            await query.answer()
-        except:
-            pass
+        await query.answer()
 
-        if query.data == 'system_restart':
-            await query.edit_message_text("🔄 **Reiniciando...**")
-            await self._perform_restart()
-            return
+        if data == 'settings_menu':
+            config = self._get_user_config(chat_id)
+            await self._show_settings_menu(update, context, config, is_edit=False)
 
-        if query.data == 'view_logs':
-            try:
-                log_path = Path("bot_output.log")
-                if log_path.exists():
-                    with open(log_path, 'r', encoding='utf-8') as f:
-                        lines = f.readlines()[-15:]
-                    log_content = "".join(lines) or "Vazio"
+        elif data in ['help_info', 'system_status', 'view_logs']:
+            if data == 'help_info': await self.help_command(update, context)
+            if data == 'system_status': await self.status_command(update, context)
+            if data == 'view_logs': await self.logs_command(update, context)
+
+        elif data == 'close_settings':
+            await query.delete_message()
+
+        # Toggles de Config
+        elif data in ['toggle_captions', 'toggle_voice', 'cycle_clips', 'cycle_duration']:
+            config = self._get_user_config(chat_id)
+
+            if data == 'toggle_captions':
+                config['captions'] = not config['captions']
+            elif data == 'toggle_voice':
+                config['voice'] = not config['voice']
+            elif data == 'cycle_clips':
+                vals = [1, 3, 5, 10]
+                try:
+                    curr_idx = vals.index(config['clips'])
+                    config['clips'] = vals[(curr_idx + 1) % len(vals)]
+                except: config['clips'] = 3
+            elif data == 'cycle_duration':
+                # Alternar entre Short (15-30), Medium (30-60), Long (60-90)
+                if config['max'] == 60:
+                    config['min'], config['max'] = 60, 90
+                elif config['max'] == 90:
+                    config['min'], config['max'] = 15, 30
                 else:
-                    log_content = "Não encontrado"
+                    config['min'], config['max'] = 30, 60
 
-                await context.bot.send_message(
-                    chat_id,
-                    f"📜 **Logs:**\n\n```\n{log_content[-2000:]}\n```",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            except Exception as e:
-                logger.error(f"Erro logs: {e}")
-            return
+            self._save_config()
+            await self._show_settings_menu(update, context, config, is_edit=True)
 
-        if query.data == 'help_info':
-            await query.edit_message_text(
-                "ℹ️ **Ajuda**\n\n"
-                "/clip <url> - Criar cortes\n"
-                "/history - Ver histórico\n"
-                "/system - Info do sistema\n"
-                "/logs - Ver logs\n"
-                "/cancel - Parar processo\n"
-                "/nuke - Reset total\n"
-                "/restart - Reiniciar bot",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
+    async def cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        chat_id = update.effective_chat.id
+        if chat_id in self.active_processes:
+            process = self.active_processes[chat_id]
+            try:
+                process.terminate()
+                if os.name == 'nt':
+                     subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
+
+                await update.message.reply_text("🛑 Cancelado.")
+            except: pass
+            del self.active_processes[chat_id]
+        else:
+            await update.message.reply_text("💤 Nada rodando.")
+
+    async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            import psutil
+            cpu = psutil.cpu_percent()
+            mem = psutil.virtual_memory()
+            msg = f"🖥️ **Status**\nCPU: {cpu}%\nRAM: {mem.percent}%"
+            await update.message.reply_text(msg)
+        except: pass
+
+    async def logs_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        log_file = PROJECT_ROOT / "logs" / f"clipper_{self._get_today()}.log"
+        if log_file.exists():
+            with open(log_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()[-10:]
+            await update.message.reply_text(f"📜 Logs:\n{''.join(lines)}")
+        else:
+            await update.message.reply_text("❌ Sem logs hoje.")
+
+    async def nuke_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        shutil.rmtree(PROJECT_ROOT / "temp", ignore_errors=True)
+        (PROJECT_ROOT / "temp").mkdir(exist_ok=True)
+        await update.message.reply_text("☢️ Temp limpo.")
+
+    def _get_today(self):
+        from datetime import datetime
+        return datetime.now().strftime("%Y%m%d")
 
 if __name__ == '__main__':
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
-        print("❌ TELEGRAM_BOT_TOKEN não encontrado!")
+        print("❌ TELEGRAM_BOT_TOKEN ausente.")
         sys.exit(1)
 
-    bot = VideoClipperBot(token)
-    bot.run()
+    VideoClipperBot(token).run()

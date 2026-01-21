@@ -1,63 +1,55 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# ===========================================
+# AI Video Clipper V3 - GitIgnore
+# ===========================================
 
-# Virtual Environment
+# === Modelos de IA (baixados pelo install) ===
+models/
+
+# === Ambiente Python ===
+.venv/
 venv/
-ENV/
-env/
-.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
 
-# Environment Variables
-# .env (Removido do ignore por solicitação explicita)
+# === Arquivos Temporários ===
+temp/
+*.tmp
+*.log
+*.cache
 
+# === Exports (vídeos gerados) ===
+exports/*.mp4
+exports/*.webm
+exports/*.jpg
+exports/*.png
 
-# IDEs
+# === Logs ===
+logs/*.log
+bot_output.log
+
+# === Ambiente local ===
+.env
+
+# === IDE ===
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# Diretórios do Projeto
-temp/
-exports/
-*.mp4
-*.mp3
-*.wav
-*.m4a
-
-# Modelos Whisper (são baixados automaticamente)
-models/
-
-# Logs
-*.log
-logs/
-
-# OS
+# === OS ===
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Runtime State
+# === Arquivos grandes de teste ===
+*.zip
+test_*.mp3
+test_*.mp4
+
+# === Estado do sistema ===
 state.json
-
-# Test Exports
-exports_v3/
+token.pickle

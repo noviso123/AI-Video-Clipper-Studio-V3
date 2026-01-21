@@ -5,86 +5,312 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI Video Clipper Studio V3</title>
-        <meta name="description" content="Transforme vídeos longos em clips virais automaticamente com IA">
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-            rel="stylesheet">
         <style>
-            * {
-                font-family: 'Inter', sans-serif;
+            /* ===== RESET & BASE ===== */
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            html,
+            body {
+                height: 100%;
+                font-family: 'Segoe UI', -apple-system, sans-serif;
+                background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
+                color: #e2e8f0;
             }
 
             body {
-                background: linear-gradient(135deg, #0a0a1a 0%, #1a1030 50%, #0a0a1a 100%);
-                background-attachment: fixed;
-                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
             }
 
-            .glass {
-                background: rgba(20, 20, 40, 0.7);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+            /* ===== HEADER ===== */
+            header {
+                height: 50px;
+                background: rgba(15, 20, 35, 0.95);
+                border-bottom: 1px solid #334155;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 20px;
+                flex-shrink: 0;
             }
 
-            .gradient-text {
-                background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .logo-icon {
+                font-size: 24px;
+            }
+
+            .logo-text {
+                font-size: 16px;
+                font-weight: 700;
+                color: #fff;
+            }
+
+            .logo-text span {
+                color: #818cf8;
+            }
+
+            .status-badge {
+                background: rgba(34, 197, 94, 0.2);
+                border: 1px solid rgba(34, 197, 94, 0.4);
+                color: #4ade80;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            /* ===== MAIN LAYOUT ===== */
+            main {
+                flex: 1;
+                display: grid;
+                grid-template-columns: 280px 1fr 280px;
+                min-height: 0;
+                overflow: hidden;
+            }
+
+            /* ===== PANELS ===== */
+            .panel {
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                background: rgba(15, 20, 35, 0.6);
+            }
+
+            .panel-left {
+                border-right: 1px solid #334155;
+            }
+
+            .panel-center {
+                background: #000;
+            }
+
+            .panel-right {
+                border-left: 1px solid #334155;
+            }
+
+            .panel-header {
+                height: 40px;
+                background: rgba(30, 41, 59, 0.8);
+                border-bottom: 1px solid #334155;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 15px;
+                flex-shrink: 0;
+            }
+
+            .panel-title {
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #94a3b8;
+            }
+
+            .panel-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 15px;
+                min-height: 0;
+            }
+
+            /* ===== SCROLLBAR ===== */
+            ::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #475569;
+                border-radius: 3px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #64748b;
+            }
+
+            /* ===== FORMS ===== */
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .form-label {
+                display: block;
+                font-size: 11px;
+                font-weight: 600;
+                color: #94a3b8;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+            }
+
+            .form-input {
+                width: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 13px;
+                color: #e2e8f0;
+                transition: all 0.2s;
+            }
+
+            .form-input:focus {
+                outline: none;
+                border-color: #818cf8;
+                box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+            }
+
+            .form-input::placeholder {
+                color: #64748b;
+            }
+
+            /* ===== TABS ===== */
+            .tabs {
+                display: flex;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 8px;
+                padding: 4px;
+                margin-bottom: 15px;
+            }
+
+            .tab {
+                flex: 1;
+                padding: 8px;
+                border: none;
+                background: transparent;
+                color: #94a3b8;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                border-radius: 6px;
+                transition: all 0.2s;
+            }
+
+            .tab.active {
+                background: #818cf8;
+                color: #fff;
+            }
+
+            .tab:hover:not(.active) {
+                color: #fff;
+            }
+
+            /* ===== SETTINGS GRID ===== */
+            .settings-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+
+            .setting-box {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 10px;
+                text-align: center;
+            }
+
+            .setting-label {
+                font-size: 9px;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
+            }
+
+            .setting-input {
+                width: 100%;
+                background: transparent;
+                border: none;
+                color: #818cf8;
+                font-size: 16px;
+                font-weight: 700;
+                text-align: center;
+            }
+
+            .setting-input:focus {
+                outline: none;
+            }
+
+            /* ===== CHECKBOXES ===== */
+            .checkbox-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-bottom: 15px;
+            }
+
+            .checkbox-label {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 12px;
+                color: #94a3b8;
+                cursor: pointer;
+            }
+
+            .checkbox-label:hover {
+                color: #fff;
+            }
+
+            .checkbox-label input {
+                accent-color: #818cf8;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn {
+                width: 100%;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
             }
 
             .btn-primary {
-                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-                transition: all 0.3s ease;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                color: #fff;
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
             }
 
             .btn-primary:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+                box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            }
+
+            .btn-primary:active {
+                transform: scale(0.98);
             }
 
             .btn-danger {
-                background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);
+                background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+                color: #fff;
             }
 
-            .terminal {
-                background: #0d0d0d;
-                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            }
-
-            .scroll::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
-            }
-
-            .scroll::-webkit-scrollbar-track {
-                background: rgba(0, 0, 0, 0.3);
-            }
-
-            .scroll::-webkit-scrollbar-thumb {
-                background: #4f46e5;
-                border-radius: 3px;
-            }
-
-            .clip-card {
-                transition: all 0.3s ease;
-            }
-
-            .clip-card:hover {
-                transform: translateY(-3px);
-                background: rgba(30, 30, 60, 0.9);
-            }
-
-            .online {
-                color: #10b981;
-            }
-
-            .offline {
-                color: #ef4444;
-            }
-
-            .processing {
-                color: #f59e0b;
-                animation: pulse 1s infinite;
+            .btn-danger.pulse {
+                animation: pulse 1.5s infinite;
             }
 
             @keyframes pulse {
@@ -95,826 +321,721 @@
                 }
 
                 50% {
-                    opacity: 0.5;
+                    opacity: 0.7;
                 }
             }
 
-            @keyframes spin {
-                from {
-                    transform: rotate(0deg);
+            .btn-secondary {
+                background: rgba(51, 65, 85, 0.5);
+                border: 1px solid #334155;
+                color: #94a3b8;
+            }
+
+            .btn-secondary:hover {
+                background: rgba(71, 85, 105, 0.5);
+                color: #fff;
+            }
+
+            .btn-sm {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            /* ===== BUTTON GRID ===== */
+            .btn-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-top: 10px;
+            }
+
+            /* ===== PROGRESS ===== */
+            .progress-container {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+
+            .progress-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+
+            .progress-label {
+                font-size: 11px;
+                color: #94a3b8;
+                font-weight: 600;
+            }
+
+            .progress-value {
+                font-size: 11px;
+                color: #818cf8;
+                font-weight: 700;
+            }
+
+            .progress-bar {
+                height: 6px;
+                background: rgba(0, 0, 0, 0.4);
+                border-radius: 3px;
+                overflow: hidden;
+            }
+
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #6366f1, #a855f7);
+                border-radius: 3px;
+                width: 0%;
+                transition: width 0.3s ease;
+            }
+
+            .progress-step {
+                font-size: 10px;
+                color: #64748b;
+                margin-top: 8px;
+                font-family: 'Consolas', monospace;
+            }
+
+            /* ===== CONSOLE ===== */
+            #console {
+                flex: 1;
+                background: #050505;
+                padding: 12px;
+                font-family: 'Consolas', 'Courier New', monospace;
+                font-size: 11px;
+                line-height: 1.6;
+                color: #4ade80;
+                overflow-y: auto;
+                min-height: 0;
+            }
+
+            #console div {
+                margin-bottom: 2px;
+            }
+
+            .console-status {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .console-status .dot {
+                width: 8px;
+                height: 8px;
+                background: #4ade80;
+                border-radius: 50%;
+                animation: blink 1s infinite;
+            }
+
+            @keyframes blink {
+
+                0%,
+                100% {
+                    opacity: 1;
                 }
 
-                to {
-                    transform: rotate(360deg);
+                50% {
+                    opacity: 0.4;
                 }
             }
 
-            .spin {
-                animation: spin 1s linear infinite;
+            /* ===== CLIPS GALLERY ===== */
+            .chips-count {
+                background: #6366f1;
+                color: #fff;
+                padding: 2px 8px;
+                border-radius: 10px;
+                font-size: 11px;
+                font-weight: 700;
             }
 
-            .score-high {
-                background: linear-gradient(135deg, #059669, #10b981);
+            .clip-card {
+                background: rgba(30, 41, 59, 0.5);
+                border: 1px solid #334155;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-bottom: 12px;
+                transition: all 0.2s;
             }
 
-            .score-mid {
-                background: linear-gradient(135deg, #d97706, #f59e0b);
+            .clip-card:hover {
+                border-color: #6366f1;
+                transform: translateY(-2px);
             }
 
-            .score-low {
-                background: linear-gradient(135deg, #dc2626, #f43f5e);
+            .clip-thumb {
+                height: 80px;
+                background: #000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            }
+
+            .clip-thumb img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .clip-thumb .placeholder {
+                font-size: 28px;
+                opacity: 0.3;
+            }
+
+            .clip-number {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+            }
+
+            .clip-info {
+                padding: 10px;
+            }
+
+            .clip-title {
+                font-size: 12px;
+                font-weight: 600;
+                color: #e2e8f0;
+                margin-bottom: 8px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .clip-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .clip-score {
+                background: rgba(34, 197, 94, 0.2);
+                color: #4ade80;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+            }
+
+            .clip-btns {
+                display: flex;
+                gap: 6px;
+            }
+
+            .clip-btn {
+                background: rgba(99, 102, 241, 0.2);
+                border: none;
+                color: #818cf8;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                text-decoration: none;
+            }
+
+            .clip-btn:hover {
+                background: #6366f1;
+                color: #fff;
+            }
+
+            .clip-btn.delete {
+                background: rgba(239, 68, 68, 0.2);
+                color: #f87171;
+            }
+
+            .clip-btn.delete:hover {
+                background: #ef4444;
+                color: #fff;
+            }
+
+            .empty-state {
+                text-align: center;
+                padding: 40px 20px;
+                color: #64748b;
+                font-size: 12px;
+            }
+
+            .empty-state .icon {
+                font-size: 40px;
+                margin-bottom: 10px;
+                opacity: 0.5;
+            }
+
+            /* ===== FOOTER ACTIONS ===== */
+            .panel-footer {
+                padding: 12px;
+                background: rgba(15, 20, 35, 0.95);
+                border-top: 1px solid #334155;
+                flex-shrink: 0;
+            }
+
+            /* ===== HIDDEN ===== */
+            .hidden {
+                display: none !important;
+            }
+
+            /* ===== INPUT WITH BUTTON ===== */
+            .input-group {
+                position: relative;
+            }
+
+            .input-group .form-input {
+                padding-right: 80px;
+            }
+
+            .input-group .input-btn {
+                position: absolute;
+                right: 4px;
+                top: 4px;
+                bottom: 4px;
+                padding: 0 12px;
+                background: #475569;
+                border: none;
+                border-radius: 6px;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .input-group .input-btn:hover {
+                background: #64748b;
             }
         </style>
     </head>
 
-    <body class="text-white">
-        <div class="min-h-screen flex flex-col">
+    <body>
 
-            <!-- HEADER -->
-            <header class="glass border-b border-white/10 sticky top-0 z-50">
-                <div class="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🎬</span>
-                        <span class="font-bold text-lg">AI Video Clipper <span
-                                class="gradient-text font-extrabold">V3</span></span>
-                    </div>
-                    <div class="flex items-center gap-4 text-sm">
-                        <div id="api-status" class="flex gap-2 text-xs">
-                            <span
-                                class="px-2 py-1 rounded bg-emerald-900/50 text-emerald-400 border border-emerald-500/30">⚡
-                                100% Local</span>
-                        </div>
-                        <div id="server-status" class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                            <span class="text-slate-400">Checando Sistema...</span>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- MAIN CONTENT -->
-            <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-                <!-- LEFT: Input + Actions -->
-                <div class="lg:col-span-1 space-y-4">
-
-                    <!-- INPUT PANEL -->
-                    <section class="glass rounded-xl p-4">
-                        <h2 class="font-bold mb-3 flex items-center gap-2">
-                            <span class="text-xl">📹</span> Entrada
-                        </h2>
-
-                        <!-- Tabs -->
-                        <div class="flex bg-slate-900/80 rounded-lg p-1 mb-3">
-                            <button onclick="setMode('url')" id="tab-url"
-                                class="flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all">
-                                📺 Clipping
-                            </button>
-                            <button onclick="setMode('autonomous')" id="tab-autonomous"
-                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                                🧠 Cérebro
-                            </button>
-                            <button onclick="setMode('file')" id="tab-file"
-                                class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                                📁 Arquivo
-                            </button>
-                        </div>
-
-                        <!-- Input Field -->
-                        <div class="relative mb-3">
-                            <input type="text" id="input-val"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 text-white placeholder-slate-500 text-sm"
-                                placeholder="Cole a URL do YouTube..."
-                                onkeydown="if(event.key === 'Enter') startProcessing()">
-                            <button id="browse-btn" onclick="browseFile()"
-                                class="hidden absolute right-2 top-1/2 -translate-y-1/2 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-medium">
-                                📂 Buscar
-                            </button>
-                        </div>
-
-                        <!-- Settings -->
-                        <div class="grid grid-cols-3 gap-2 mb-3">
-                            <div class="space-y-1">
-                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Clips</label>
-                                <input type="number" id="input-clips" value="3" min="1" max="10"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Min (s)</label>
-                                <input type="number" id="input-min-dur" value="60" min="60" max="300"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] uppercase text-slate-500 font-bold ml-1">Max (s)</label>
-                                <input type="number" id="input-max-dur" value="90" min="60" max="600"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500 text-white text-xs text-center">
-                            </div>
-                        </div>
-
-                        <!-- Toggles -->
-                        <div class="space-y-2 mb-4 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
-                            <label class="flex items-center justify-between cursor-pointer">
-                                <span class="text-xs font-semibold text-slate-300">🎤 Legendas Karaoke (V3)</span>
-                                <input type="checkbox" id="check-captions" checked class="accent-indigo-500 w-4 h-4">
-                            </label>
-                            <label class="flex items-center justify-between cursor-pointer">
-                                <span class="text-xs font-semibold text-slate-300">🎬 B-Rolls Automáticos
-                                    (Scraper)</span>
-                                <input type="checkbox" id="check-broll" checked class="accent-indigo-500 w-4 h-4">
-                            </label>
-                            <label class="flex items-center justify-between cursor-pointer">
-                                <span class="text-xs font-semibold text-slate-300">🧐 Crítico IA</span>
-                                <input type="checkbox" id="check-critic" checked class="accent-indigo-500 w-4 h-4">
-                            </label>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="space-y-2">
-                            <button id="start-btn" onclick="startProcessing()"
-                                class="w-full btn-primary py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
-                                <span>✨</span> <span id="start-btn-text">GERAR CLIPS</span>
-                            </button>
-                            <button id="stop-btn" onclick="stopProcessing()"
-                                class="hidden w-full btn-danger py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2">
-                                <span>🛑</span> PARAR
-                            </button>
-                        </div>
-
-                        <!-- Status -->
-                        <div class="mt-3 pt-3 border-t border-slate-700/50 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-slate-400">Status:</span>
-                                <span id="process-status" class="font-medium text-slate-300">Aguardando</span>
-                            </div>
-                            <div class="flex justify-between mt-1">
-                                <span class="text-slate-400">Etapa:</span>
-                                <span id="process-step" class="font-medium text-indigo-400">--</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- HISTORY PANEL -->
-                    <section class="glass rounded-xl p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="font-bold flex items-center gap-2">
-                                <span class="text-xl">📋</span> Último Processamento
-                            </h2>
-                        </div>
-                        <div id="history-content" class="text-sm text-slate-400 italic">
-                            Nenhum vídeo processado ainda.
-                        </div>
-                    </section>
-
-                    <!-- ACTIONS PANEL -->
-                    <section class="glass rounded-xl p-4">
-                        <h2 class="font-bold mb-3 flex items-center gap-2">
-                            <span class="text-xl">⚡</span> Ações Rápidas
-                        </h2>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="refreshAll()"
-                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
-                                🔄 Atualizar
-                            </button>
-                            <button onclick="clearLogs()"
-                                class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg transition-all">
-                                📝 Limpar Logs
-                            </button>
-                            <button onclick="deleteAllClips()"
-                                class="text-xs bg-red-900/50 hover:bg-red-900 text-red-400 py-2 px-3 rounded-lg transition-all">
-                                🗑️ Limpar Clips
-                            </button>
-                            <button onclick="nukeAll()"
-                                class="text-xs bg-red-600 hover:bg-red-500 text-white py-2 px-3 rounded-lg transition-all font-bold">
-                                ☢️ APAGAR TUDO
-                            </button>
-                        </div>
-                    </section>
-
-                </div>
-
-                <!-- CENTER: Console -->
-                <div class="lg:col-span-1 flex flex-col">
-                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="font-bold flex items-center gap-2">
-                                <span class="text-xl">💻</span> Console
-                            </h2>
-                            <span id="log-count" class="text-xs text-slate-500">0 linhas</span>
-                        </div>
-                        <div id="console"
-                            class="terminal rounded-lg p-3 flex-1 overflow-y-auto scroll text-xs text-green-400 min-h-[400px]">
-                            <div>$ Sistema inicializado. Aguardando entrada...</div>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- RIGHT: Clips -->
-                <div class="lg:col-span-1 flex flex-col">
-                    <section class="glass rounded-xl p-4 flex-1 flex flex-col">
-                        <div class="flex justify-between items-center mb-3">
-                            <h2 class="font-bold flex items-center gap-2">
-                                <span class="text-xl">🎬</span> Clips Gerados
-                            </h2>
-                            <span id="clips-count" class="text-xs text-slate-500">0 clips</span>
-                        </div>
-                        <div id="clips-list" class="flex-1 overflow-y-auto scroll space-y-2 min-h-[400px]">
-                            <div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>
-                        </div>
-                    </section>
-                </div>
-
-            </main>
-
-            <!-- FOOTER -->
-            <footer class="text-center py-4 text-xs text-slate-500">
-                AI Video Clipper Studio V3 • Local Mode
-            </footer>
-
-        </div>
-
-        <!-- VIDEO MODAL (FULLSCREEN) -->
-        <div id="modal" class="fixed inset-0 z-[100] bg-black flex flex-col" style="display: none;">
-            <!-- Header Bar -->
-            <div
-                class="flex justify-between items-center px-4 py-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
-                <span id="modal-title"
-                    class="text-sm font-bold truncate flex-1 mr-4 text-white drop-shadow-lg">Preview</span>
-                <button onclick="closeModal()"
-                    class="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center text-2xl text-white hover:bg-white/30 transition-all">
-                    &times;
-                </button>
+        <!-- ===== HEADER ===== -->
+        <header>
+            <div class="logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">Clipper <span>Studio V3</span></span>
             </div>
+            <span class="status-badge">⚡ MODO OFFLINE</span>
+        </header>
 
-            <!-- Video Container (FULLSCREEN) -->
-            <div class="flex-1 flex items-center justify-center bg-black" onclick="toggleVideoPlay()">
-                <video id="modal-video" controls autoplay playsinline
-                    class="max-h-full max-w-full w-auto h-auto object-contain"
-                    style="max-height: 100vh; max-width: 100vw;"></video>
-            </div>
+        <!-- ===== MAIN CONTENT ===== -->
+        <main>
 
-            <!-- Bottom Controls -->
-            <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                <div class="max-w-md mx-auto space-y-2">
-                    <div class="flex gap-2">
-                        <a id="modal-download" href="#" download
-                            class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-center py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
-                            ⬇️ Download
-                        </a>
-                        <button id="modal-share" onclick="shareVideo()"
-                            class="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
-                            📤 Compartilhar
-                        </button>
+            <!-- LEFT PANEL: CONTROLS -->
+            <section class="panel panel-left">
+                <div class="panel-header">
+                    <span class="panel-title">⚙️ Configurações</span>
+                </div>
+                <div class="panel-body">
+
+                    <!-- Mode Tabs -->
+                    <div class="tabs">
+                        <button class="tab active" id="tab-url" onclick="setMode('url')">🔗 URL</button>
+                        <button class="tab" id="tab-file" onclick="setMode('file')">📁 Arquivo</button>
                     </div>
-                    <button id="modal-copy-link" onclick="copyVideoLink()"
-                        class="w-full bg-white/20 backdrop-blur hover:bg-white/30 text-white py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                        🔗 Copiar Link
+
+                    <!-- Input -->
+                    <div class="form-group">
+                        <label class="form-label">Origem do Vídeo</label>
+                        <div class="input-group">
+                            <input type="text" id="input-val" class="form-input"
+                                placeholder="Cole a URL do YouTube aqui...">
+                            <button id="browse-btn" class="input-btn hidden" onclick="browseFile()">📂 Buscar</button>
+                        </div>
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="settings-grid">
+                        <div class="setting-box">
+                            <div class="setting-label">Clips</div>
+                            <input type="number" id="input-clips" class="setting-input" value="3">
+                        </div>
+                        <div class="setting-box">
+                            <div class="setting-label">Min (s)</div>
+                            <input type="number" id="input-min-dur" class="setting-input" value="60">
+                        </div>
+                        <div class="setting-box">
+                            <div class="setting-label">Max (s)</div>
+                            <input type="number" id="input-max-dur" class="setting-input" value="90">
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="check-captions" checked> Legendas Automáticas
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="check-critic" checked> Crítico de IA
+                        </label>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="progress-container">
+                        <div class="progress-header">
+                            <span class="progress-label">Progresso</span>
+                            <span class="progress-value" id="progress-text">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-bar"></div>
+                        </div>
+                        <div class="progress-step" id="process-step">Aguardando início...</div>
+                    </div>
+
+                    <!-- Main Action Buttons -->
+                    <button id="start-btn" class="btn btn-primary" onclick="startProcessing()">
+                        🚀 GERAR CLIPS
                     </button>
-                </div>
-            </div>
-        </div>
+                    <button id="stop-btn" class="btn btn-danger pulse hidden" onclick="stopProcessing()">
+                        🛑 PARAR PROCESSAMENTO
+                    </button>
 
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="panel-footer">
+                    <div class="btn-grid">
+                        <button class="btn btn-secondary btn-sm" onclick="refreshPage()">🔄 Atualizar</button>
+                        <button class="btn btn-secondary btn-sm" onclick="nukeAll()" style="color: #f87171;">☢️ Reset
+                            Total</button>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" style="margin-top: 8px;" onclick="deleteAllClips()">🗑️
+                        Excluir Todos os Clips</button>
+                </div>
+            </section>
+
+            <!-- CENTER PANEL: CONSOLE -->
+            <section class="panel panel-center">
+                <div class="panel-header">
+                    <span class="panel-title">Terminal (Live)</span>
+                    <div class="console-status">
+                        <span class="dot"></span>
+                        <span style="font-size: 10px; color: #4ade80;">Conectado</span>
+                    </div>
+                </div>
+                <div id="console">
+                    <div style="color: #64748b;">$ Sistema inicializado. Aguardando comando...</div>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: GALLERY -->
+            <section class="panel panel-right">
+                <div class="panel-header">
+                    <span class="panel-title">📁 Galeria de Clips</span>
+                    <span class="chips-count" id="clips-count">0</span>
+                </div>
+                <div class="panel-body" id="clips-list">
+                    <div class="empty-state">
+                        <div class="icon">🎬</div>
+                        <div>Nenhum clip gerado ainda.</div>
+                        <div style="margin-top: 5px; font-size: 10px;">Inicie um processamento para criar clips.</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ===== SCRIPTS ===== -->
         <script>
-            // =====================
-            // STATE
-            // =====================
             let mode = 'url';
             let eventSource = null;
-            let isProcessing = false;
-            let displayedLogCount = 0; // Track how many logs we've already displayed
+            let progress = 0;
 
-            // =====================
-            // INIT
-            // =====================
-            window.onload = async () =>
+            // === PROGRESS ===
+            function updateProgress ( val )
             {
-                await loadHealth();
-                await loadStatus();
-                await loadClips();
-            };
-
-            async function loadHealth ()
-            {
-                try
-                {
-                    const res = await fetch( '/api/health' );
-                    const data = await res.json();
-
-                    updateServerStatus( true );
-
-                    // Local only - no external API checks needed
-                } catch ( e )
-                {
-                    updateServerStatus( false );
-                }
+                progress = val;
+                document.getElementById( 'progress-bar' ).style.width = val + '%';
+                document.getElementById( 'progress-text' ).innerText = val + '%';
             }
 
-            async function loadStatus ()
-            {
-                try
-                {
-                    const res = await fetch( '/status' );
-                    const state = await res.json();
-
-                    if ( state.current_project )
-                    {
-                        updateHistory( state.current_project.input, state.status );
-                    }
-
-                    if ( state.logs && state.logs.length > 0 )
-                    {
-                        const console = document.getElementById( 'console' );
-                        console.innerHTML = state.logs.map( l => `<div>${ sanitize( l ) }</div>` ).join( '' );
-                        console.scrollTop = console.scrollHeight;
-                        document.getElementById( 'log-count' ).textContent = `${ state.logs.length } linhas`;
-                        displayedLogCount = state.logs.length; // Track how many we've shown
-                    }
-
-                    if ( state.running )
-                    {
-                        showProcessingUI();
-                        connectStream();
-                    }
-                } catch ( e )
-                {
-                    console.error( 'Error loading status:', e );
-                }
-            }
-
-            async function loadClips ()
-            {
-                try
-                {
-                    const res = await fetch( '/api/clips' );
-                    const clips = await res.json();
-                    const container = document.getElementById( 'clips-list' );
-                    document.getElementById( 'clips-count' ).textContent = `${ clips.length } clips`;
-
-                    if ( clips.length === 0 )
-                    {
-                        container.innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum clip gerado ainda.</div>';
-                        return;
-                    }
-
-                    container.innerHTML = clips.map( ( clip, index ) =>
-                    {
-                        const scoreClass = clip.score >= 8 ? 'score-high' : clip.score >= 5 ? 'score-mid' : 'score-low';
-                        const rankEmoji = index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${ index + 1 }`;
-
-                        return `
-                        <div class="clip-card bg-slate-800/50 rounded-lg p-3 cursor-pointer flex gap-3 relative"
-                             onclick="openModal('${ clip.video }', '${ sanitize( clip.title ) }')">
-
-                            <!-- Rank Badge -->
-                            <div class="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-slate-900 border-2 border-indigo-500/50 flex items-center justify-center text-xs font-bold shadow-lg z-10">
-                                ${ rankEmoji }
-                            </div>
-
-                            <div class="w-14 h-20 bg-slate-700 rounded overflow-hidden flex-shrink-0">
-                                ${ clip.thumb ?
-                                `<img src="/exports/${ clip.thumb }" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='🎬'">` :
-                                `<div class="w-full h-full flex items-center justify-center text-xl">🎬</div>`
-                            }
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="font-medium text-sm text-white line-clamp-2 mb-1 pl-1">${ sanitize( clip.title ) }</div>
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-slate-700/50 ${ scoreClass } bg-opacity-20 border-opacity-50">
-                                        <span class="text-[10px] uppercase font-bold text-slate-400">Score</span>
-                                        <span class="text-sm font-black text-white">${ clip.score.toFixed( 1 ) }</span>
-                                    </div>
-                                    <button onclick="event.stopPropagation(); deleteClip('${ clip.video }')"
-                                        class="hover:bg-slate-700 p-1.5 rounded text-red-400 hover:text-red-300 transition-colors">🗑️</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    } ).join( '' );
-                } catch ( e )
-                {
-                    console.error( 'Error loading clips:', e );
-                }
-            }
-
-
-            // =====================
-            // UI HELPERS
-            // =====================
-            function updateServerStatus ( online )
-            {
-                const el = document.getElementById( 'server-status' );
-                if ( online )
-                {
-                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="online font-bold text-emerald-400">Sistema Online</span>`;
-                } else
-                {
-                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="offline font-bold text-red-400">Backend Offline</span>`;
-                }
-            }
-
-            function updateHistory ( input, status )
-            {
-                const filename = input ? input.split( '/' ).pop().split( '\\' ).pop() : 'N/A';
-                let statusText = '⏳ Processando...';
-                let statusClass = 'processing';
-
-                if ( status === 'done' ) { statusText = '✅ Concluído'; statusClass = 'online'; }
-                else if ( status === 'error' ) { statusText = '❌ Erro'; statusClass = 'offline'; }
-                else if ( status === 'cancelled' ) { statusText = '🛑 Cancelado'; statusClass = 'text-slate-400'; }
-                else if ( status === 'idle' ) { statusText = '⏸️ Pronto'; statusClass = 'text-slate-400'; }
-
-                document.getElementById( 'history-content' ).innerHTML = `
-                <div class="p-2 bg-slate-800/50 rounded-lg">
-                    <div class="font-medium text-white truncate">${ sanitize( filename ) }</div>
-                    <div class="${ statusClass } text-xs mt-1">${ statusText }</div>
-                </div>
-            `;
-            }
-
-            function showProcessingUI ()
-            {
-                isProcessing = true;
-                document.getElementById( 'start-btn' ).classList.add( 'hidden' );
-                document.getElementById( 'stop-btn' ).classList.remove( 'hidden' );
-                document.getElementById( 'process-status' ).textContent = 'Processando...';
-                document.getElementById( 'process-status' ).className = 'font-medium processing';
-            }
-
-            function hideProcessingUI ()
-            {
-                isProcessing = false;
-                document.getElementById( 'start-btn' ).classList.remove( 'hidden' );
-                document.getElementById( 'stop-btn' ).classList.add( 'hidden' );
-                document.getElementById( 'process-status' ).textContent = 'Aguardando';
-                document.getElementById( 'process-status' ).className = 'font-medium text-slate-300';
-                document.getElementById( 'process-step' ).textContent = '--';
-            }
-
-            function addLog ( text )
-            {
-                const console = document.getElementById( 'console' );
-                const line = document.createElement( 'div' );
-                line.textContent = text;
-                console.appendChild( line );
-                console.scrollTop = console.scrollHeight;
-
-                const count = console.querySelectorAll( 'div' ).length;
-                document.getElementById( 'log-count' ).textContent = `${ count } linhas`;
-            }
-
-            function sanitize ( str )
-            {
-                return String( str ).replace( /[<>]/g, '' ).replace( /'/g, "\\'" );
-            }
-
-            // =====================
-            // MODE
-            // =====================
+            // === MODE SWITCH ===
             function setMode ( m )
             {
                 mode = m;
-                const btnUrl = document.getElementById( 'tab-url' );
-                const btnAutonomous = document.getElementById( 'tab-autonomous' );
-                const btnFile = document.getElementById( 'tab-file' );
+                document.getElementById( 'tab-url' ).className = m === 'url' ? 'tab active' : 'tab';
+                document.getElementById( 'tab-file' ).className = m === 'file' ? 'tab active' : 'tab';
+
                 const input = document.getElementById( 'input-val' );
                 const browse = document.getElementById( 'browse-btn' );
-                const startBtnText = document.getElementById( 'start-btn-text' );
-
-                // Reset all tabs
-                [ btnUrl, btnAutonomous, btnFile ].forEach( b =>
-                {
-                    b.className = "flex-1 py-2 px-3 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                } );
 
                 if ( m === 'url' )
                 {
-                    btnUrl.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
-                    input.placeholder = "Cole a URL do YouTube...";
+                    input.placeholder = 'Cole a URL do YouTube aqui...';
                     browse.classList.add( 'hidden' );
-                    startBtnText.textContent = "GERAR CLIPS";
-                } else if ( m === 'autonomous' )
-                {
-                    btnAutonomous.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-cyan-600 text-white transition-all";
-                    input.placeholder = "Cole link do artigo ou site...";
-                    browse.classList.remove( 'hidden' );
-                    startBtnText.textContent = "GERAÇÃO AUTÔNOMA";
                 } else
                 {
-                    btnFile.className = "flex-1 py-2 px-3 rounded-md text-sm font-semibold bg-indigo-600 text-white transition-all";
-                    input.placeholder = "Selecione um arquivo de vídeo...";
+                    input.placeholder = 'Caminho do arquivo local...';
                     browse.classList.remove( 'hidden' );
-                    startBtnText.textContent = "GERAR CLIPS";
                 }
             }
 
-            async function browseFile ()
-            {
-                try
-                {
-                    const res = await fetch( '/browse' );
-                    const data = await res.json();
-                    if ( data.path )
-                    {
-                        document.getElementById( 'input-val' ).value = data.path;
-                    }
-                } catch ( e )
-                {
-                    alert( 'Erro ao abrir seletor de arquivos' );
-                }
-            }
-
-            // =====================
-            // PROCESS CONTROL
-            // =====================
+            // === PROCESSING ===
             async function startProcessing ()
             {
                 const input = document.getElementById( 'input-val' ).value.trim();
-                if ( !input )
-                {
-                    alert( 'Digite uma URL ou selecione um arquivo!' );
-                    return;
-                }
+                if ( !input ) return alert( '⚠️ Digite uma URL ou selecione um arquivo!' );
 
-                // AUTO-DELETE before starting
-                addLog( '🗑️ Limpando dados anteriores automaticamente...' );
-                try
-                {
-                    await fetch( '/api/nuke', { method: 'DELETE' } );
-                    addLog( '✅ Limpeza concluída' );
-                } catch ( e )
-                {
-                    addLog( '⚠️ Aviso na limpeza' );
-                }
-
-                showProcessingUI();
-                updateHistory( input, 'processing' );
+                setRunningUI( true );
+                updateProgress( 5 );
+                document.getElementById( 'process-step' ).innerText = '🔄 Iniciando processamento...';
 
                 try
                 {
-                    // Check if it's autonomous mode
-                    const endpoint = mode === 'autonomous' ? '/api/generate/autonomous' : '/run';
-
-                    const clips = parseInt( document.getElementById( 'input-clips' ).value ) || 3;
-                    const min_duration = parseInt( document.getElementById( 'input-min-dur' ).value ) || 30;
-                    const max_duration = parseInt( document.getElementById( 'input-max-dur' ).value ) || 60;
-
-                    const body = mode === 'autonomous' ?
-                        JSON.stringify( { url: input } ) :
-                        JSON.stringify( {
-                            mode,
-                            input,
-                            clips,
-                            min_duration,
-                            max_duration,
-                            captions: document.getElementById( 'check-captions' ).checked,
-                            broll: document.getElementById( 'check-broll' ).checked,
-                            critic: document.getElementById( 'check-critic' ).checked
-                        } );
-
-                    const res = await fetch( endpoint, {
+                    await fetch( '/run', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: body
+                        body: JSON.stringify( {
+                            mode, input,
+                            clips: parseInt( document.getElementById( 'input-clips' ).value ) || 3,
+                            min_duration: parseInt( document.getElementById( 'input-min-dur' ).value ) || 60,
+                            max_duration: parseInt( document.getElementById( 'input-max-dur' ).value ) || 90,
+                            captions: document.getElementById( 'check-captions' ).checked,
+                            critic: document.getElementById( 'check-critic' ).checked
+                        } )
                     } );
-                    const data = await res.json();
-
-                    if ( data.status === 'error' )
-                    {
-                        alert( data.message );
-                        hideProcessingUI();
-                        updateHistory( input, 'error' );
-                    } else
-                    {
-                        connectStream();
-                    }
                 } catch ( e )
                 {
-                    alert( 'Erro de conexão' );
-                    hideProcessingUI();
+                    alert( '❌ Erro de conexão com o servidor!' );
+                    setRunningUI( false );
                 }
             }
 
             async function stopProcessing ()
             {
-                try
+                if ( confirm( '⚠️ Deseja realmente parar o processamento?' ) )
                 {
                     await fetch( '/api/stop', { method: 'POST' } );
-                    addLog( '🛑 Processo cancelado' );
-                    hideProcessingUI();
-                    updateHistory( document.getElementById( 'input-val' ).value, 'cancelled' );
-                    if ( eventSource )
-                    {
-                        eventSource.close();
-                        eventSource = null;
-                    }
-                } catch ( e )
-                {
-                    alert( 'Erro ao cancelar' );
+                    setTimeout( refreshPage, 500 );
                 }
             }
 
+            function setRunningUI ( isActive )
+            {
+                const startBtn = document.getElementById( 'start-btn' );
+                const stopBtn = document.getElementById( 'stop-btn' );
+                const step = document.getElementById( 'process-step' );
+
+                if ( isActive )
+                {
+                    startBtn.classList.add( 'hidden' );
+                    stopBtn.classList.remove( 'hidden' );
+                    step.style.color = '#818cf8';
+                } else
+                {
+                    startBtn.classList.remove( 'hidden' );
+                    stopBtn.classList.add( 'hidden' );
+                    step.innerText = '✅ Pronto';
+                    step.style.color = '#64748b';
+                    updateProgress( 0 );
+                }
+            }
+
+            // === LIVE STREAM ===
             function connectStream ()
             {
                 if ( eventSource ) eventSource.close();
+                const skip = document.querySelectorAll( '#console div' ).length;
+                eventSource = new EventSource( '/stream?skip=' + skip );
+                const term = document.getElementById( 'console' );
 
-                // Pass skip parameter to avoid receiving logs we already displayed
-                eventSource = new EventSource( `/stream?skip=${ displayedLogCount }` );
-
-                eventSource.onmessage = ( e ) =>
+                eventSource.onmessage = e =>
                 {
-                    let text = e.data;
-                    if ( text.startsWith( 'data: ' ) ) text = text.substring( 6 );
-                    addLog( text );
+                    const msg = e.data.replace( 'data: ', '' );
+                    const line = document.createElement( 'div' );
+                    line.textContent = msg;
+                    term.appendChild( line );
+                    term.scrollTop = term.scrollHeight;
 
+                    // Progress Heuristics
                     const step = document.getElementById( 'process-step' );
-                    if ( text.includes( 'STAGE 1' ) ) step.textContent = '📥 Download';
-                    if ( text.includes( 'STAGE 2:' ) && !text.includes( '2.5' ) ) step.textContent = '🎙️ Transcrição';
-                    if ( text.includes( 'STAGE 3' ) ) step.textContent = '🧠 Análise IA';
-                    if ( text.includes( 'STAGE 4' ) ) step.textContent = '✂️ Edição';
-                    if ( text.includes( 'STAGE 5' ) || text.includes( 'STAGE 6' ) ) step.textContent = '🚀 Finalizando';
-
-                    if ( text.includes( '[PROCESS FINISHED]' ) )
+                    if ( msg.includes( 'STAGE 1' ) ) { updateProgress( 10 ); step.innerText = '📥 Baixando vídeo...'; }
+                    if ( msg.includes( 'STAGE 2' ) ) { updateProgress( 25 ); step.innerText = '🎙️ Transcrevendo áudio...'; }
+                    if ( msg.includes( 'Transcrevendo' ) ) { updateProgress( 35 ); }
+                    if ( msg.includes( 'STAGE 3' ) ) { updateProgress( 50 ); step.innerText = '🧠 Analisando com IA...'; }
+                    if ( msg.includes( 'STAGE 4' ) ) { updateProgress( 65 ); step.innerText = '✂️ Cortando clips...'; }
+                    if ( msg.includes( 'render_clip' ) || msg.includes( 'Renderizando' ) )
                     {
-                        eventSource.close();
-                        eventSource = null;
-                        hideProcessingUI();
-                        updateHistory( document.getElementById( 'input-val' ).value, text.includes( 'Sucesso' ) ? 'done' : 'error' );
-                        loadClips();
+                        if ( progress < 90 ) updateProgress( progress + 5 );
+                    }
+                    if ( msg.includes( 'STAGE 5' ) || msg.includes( 'STAGE 6' ) ) { updateProgress( 95 ); step.innerText = '🚀 Finalizando...'; }
+
+                    if ( msg.includes( '[PROCESS FINISHED]' ) )
+                    {
+                        updateProgress( 100 );
+                        step.innerText = msg.includes( 'Sucesso' ) ? '✅ Concluído com sucesso!' : '⚠️ Finalizado com avisos';
+                        setTimeout( () =>
+                        {
+                            setRunningUI( false );
+                            loadClips();
+                        }, 1500 );
                     }
                 };
 
                 eventSource.onerror = () =>
                 {
-                    if ( eventSource )
-                    {
-                        eventSource.close();
-                        eventSource = null;
-                    }
+                    eventSource.close();
+                    setTimeout( connectStream, 2000 );
                 };
             }
 
-            // =====================
-            // CLIP ACTIONS
-            // =====================
+            // === CLIPS GALLERY ===
+            async function loadClips ()
+            {
+                try
+                {
+                    const res = await fetch( '/api/clips' );
+                    const data = await res.json();
+                    document.getElementById( 'clips-count' ).innerText = data.length;
+                    const list = document.getElementById( 'clips-list' );
+
+                    if ( !data.length )
+                    {
+                        list.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">🎬</div>
+                            <div>Nenhum clip gerado ainda.</div>
+                            <div style="margin-top: 5px; font-size: 10px;">Inicie um processamento para criar clips.</div>
+                        </div>
+                    `;
+                        return;
+                    }
+
+                    list.innerHTML = data.map( ( c, i ) => `
+                    <div class="clip-card">
+                        <div class="clip-thumb">
+                            ${ c.thumb ? `<img src="/exports/${ c.thumb }" alt="Thumbnail">` : '<span class="placeholder">🎬</span>' }
+                            <span class="clip-number">#${ i + 1 }</span>
+                        </div>
+                        <div class="clip-info">
+                            <div class="clip-title" title="${ c.title || 'Clip' }">${ c.title || 'Clip ' + ( i + 1 ) }</div>
+                            <div class="clip-actions">
+                                <span class="clip-score">⭐ ${ ( c.score || 0 ).toFixed( 1 ) }</span>
+                                <div class="clip-btns">
+                                    <a href="/exports/${ c.video }" download class="clip-btn">⬇️ Baixar</a>
+                                    <button class="clip-btn delete" onclick="deleteClip('${ c.video }')">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join( '' );
+                } catch ( e ) { console.error( 'Erro ao carregar clips:', e ); }
+            }
+
+            // === DELETE CLIP ===
             async function deleteClip ( filename )
             {
-                if ( !confirm( `Deletar ${ filename }?` ) ) return;
+                if ( !confirm( `🗑️ Excluir ${ filename }?` ) ) return;
                 try
                 {
                     await fetch( `/api/exports/delete/${ filename }`, { method: 'DELETE' } );
                     loadClips();
-                } catch ( e )
-                {
-                    alert( 'Erro ao deletar' );
-                }
+                } catch ( e ) { alert( '❌ Erro ao excluir' ); }
             }
 
-            async function deleteAllClips ()
+            // === RESTORE STATE ===
+            async function restoreState ()
             {
-                if ( !confirm( 'Deletar TODOS os clips?' ) ) return;
                 try
                 {
-                    await fetch( '/api/exports/delete-all', { method: 'DELETE' } );
-                    loadClips();
-                } catch ( e )
+                    const res = await fetch( '/status' );
+                    const s = await res.json();
+
+                    if ( s.running )
+                    {
+                        setRunningUI( true );
+                        document.getElementById( 'input-val' ).value = s.current_project?.input || '';
+                        if ( s.current_project?.mode === 'file' ) setMode( 'file' );
+                    }
+
+                    if ( s.logs && s.logs.length )
+                    {
+                        const term = document.getElementById( 'console' );
+                        term.innerHTML = s.logs.map( l => `<div>${ l }</div>` ).join( '' );
+                        term.scrollTop = term.scrollHeight;
+
+                        // === RESTORE PROGRESS FROM LOGS ===
+                        let restoredProgress = 0;
+                        let lastStep = 'Aguardando...';
+                        const step = document.getElementById( 'process-step' );
+
+                        for ( const log of s.logs )
+                        {
+                            if ( log.includes( 'STAGE 1' ) ) { restoredProgress = 10; lastStep = '📥 Baixando vídeo...'; }
+                            if ( log.includes( 'STAGE 2' ) ) { restoredProgress = 25; lastStep = '🎙️ Transcrevendo áudio...'; }
+                            if ( log.includes( 'Transcrevendo' ) ) { restoredProgress = Math.max( restoredProgress, 35 ); }
+                            if ( log.includes( 'STAGE 3' ) ) { restoredProgress = 50; lastStep = '🧠 Analisando com IA...'; }
+                            if ( log.includes( 'STAGE 4' ) ) { restoredProgress = 65; lastStep = '✂️ Cortando clips...'; }
+                            if ( log.includes( 'render_clip' ) || log.includes( 'Renderizando' ) )
+                            {
+                                restoredProgress = Math.min( restoredProgress + 5, 90 );
+                            }
+                            if ( log.includes( 'STAGE 5' ) || log.includes( 'STAGE 6' ) ) { restoredProgress = 95; lastStep = '🚀 Finalizando...'; }
+                            if ( log.includes( '[PROCESS FINISHED]' ) )
+                            {
+                                restoredProgress = 100;
+                                lastStep = log.includes( 'Sucesso' ) ? '✅ Concluído!' : '⚠️ Finalizado';
+                            }
+                        }
+
+                        // Apply restored progress
+                        if ( restoredProgress > 0 )
+                        {
+                            updateProgress( restoredProgress );
+                            step.innerText = lastStep;
+                            if ( s.running ) step.style.color = '#818cf8';
+                        }
+                    }
+                } catch ( e ) { }
+            }
+
+            // === ACTIONS ===
+            async function browseFile ()
+            {
+                try
                 {
-                    alert( 'Erro' );
-                }
+                    const r = await fetch( '/browse' );
+                    const d = await r.json();
+                    if ( d.path ) document.getElementById( 'input-val' ).value = d.path;
+                } catch ( e ) { alert( '❌ Erro ao buscar arquivo' ); }
             }
 
             async function nukeAll ()
             {
-                if ( !confirm( '☢️ APAGAR TUDO (clips, histórico, cache)?' ) ) return;
-                try
+                if ( confirm( '☢️ ATENÇÃO: Isso vai apagar TODOS os clips, cache e logs. Continuar?' ) )
                 {
                     await fetch( '/api/nuke', { method: 'DELETE' } );
-                    document.getElementById( 'console' ).innerHTML = '<div>$ Tudo apagado. Sistema resetado.</div>';
-                    document.getElementById( 'history-content' ).innerHTML = '<div class="text-sm text-slate-500 italic">Nenhum vídeo processado ainda.</div>';
+                    location.reload();
+                }
+            }
+
+            function refreshPage () { location.reload(); }
+
+            async function deleteAllClips ()
+            {
+                if ( confirm( '🗑️ Excluir TODOS os clips da galeria?' ) )
+                {
+                    await fetch( '/api/exports/delete-all', { method: 'DELETE' } );
                     loadClips();
-                } catch ( e )
-                {
-                    alert( 'Erro' );
                 }
             }
 
-            // =====================
-            // OTHER ACTIONS
-            // =====================
-            async function refreshAll ()
+            // === INIT ===
+            window.onload = async () =>
             {
-                await loadHealth();
-                await loadStatus();
-                await loadClips();
-            }
-
-            async function clearLogs ()
-            {
-                try
-                {
-                    await fetch( '/api/logs/clear', { method: 'POST' } );
-                    document.getElementById( 'console' ).innerHTML = '<div>$ Logs limpos</div>';
-                    document.getElementById( 'log-count' ).textContent = '1 linha';
-                } catch ( e ) { }
-            }
-
-            // =====================
-            // MODAL
-            // =====================
-            let currentVideoFile = '';
-
-            function openModal ( video, title )
-            {
-                currentVideoFile = video;
-                document.getElementById( 'modal-video' ).src = `/exports/${ video }`;
-                document.getElementById( 'modal-download' ).href = `/api/exports/download/${ video }`;
-                document.getElementById( 'modal-title' ).textContent = title;
-                document.getElementById( 'modal' ).style.display = 'flex';
-            }
-
-            function closeModal ()
-            {
-                document.getElementById( 'modal-video' ).pause();
-                document.getElementById( 'modal-video' ).src = '';
-                document.getElementById( 'modal' ).style.display = 'none';
-            }
-
-            function toggleVideoPlay ()
-            {
-                const video = document.getElementById( 'modal-video' );
-                if ( video.paused )
-                {
-                    video.play();
-                } else
-                {
-                    video.pause();
-                }
-            }
-
-            async function shareVideo ()
-            {
-                const videoUrl = `/exports/${ currentVideoFile }`;
-                const title = document.getElementById( 'modal-title' ).textContent;
-
-                if ( navigator.share )
-                {
-                    try
-                    {
-                        // Try to share with file if supported
-                        const response = await fetch( videoUrl );
-                        const blob = await response.blob();
-                        const file = new File( [ blob ], currentVideoFile, { type: 'video/mp4' } );
-
-                        await navigator.share( {
-                            title: title,
-                            text: `🎬 ${ title }`,
-                            files: [ file ]
-                        } );
-                    } catch ( err )
-                    {
-                        // Fallback to sharing URL
-                        try
-                        {
-                            await navigator.share( {
-                                title: title,
-                                text: `🎬 ${ title }`,
-                                url: window.location.origin + videoUrl
-                            } );
-                        } catch ( e )
-                        {
-                            copyVideoLink();
-                        }
-                    }
-                } else
-                {
-                    copyVideoLink();
-                }
-            }
-
-            function copyVideoLink ()
-            {
-                const videoUrl = window.location.origin + `/exports/${ currentVideoFile }`;
-                navigator.clipboard.writeText( videoUrl ).then( () =>
-                {
-                    const btn = document.getElementById( 'modal-copy-link' );
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = '✅ Link Copiado!';
-                    btn.classList.add( 'bg-green-600' );
-                    setTimeout( () =>
-                    {
-                        btn.innerHTML = originalText;
-                        btn.classList.remove( 'bg-green-600' );
-                    }, 2000 );
-                } ).catch( () =>
-                {
-                    alert( 'Link: ' + videoUrl );
-                } );
-            }
-
-            document.addEventListener( 'keydown', e =>
-            {
-                if ( e.key === 'Escape' ) closeModal();
-                if ( e.key === 'Enter' && !isProcessing && document.activeElement.id === 'input-val' ) startProcessing();
-            } );
+                await restoreState();
+                loadClips();
+                connectStream();
+            };
         </script>
+
     </body>
 
 </html>

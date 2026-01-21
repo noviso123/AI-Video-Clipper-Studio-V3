@@ -382,13 +382,13 @@ class ViralAnalyzer:
             if durations:
                 avg_dur = sum(durations) / len(durations)
 
-                # Ritmo rápido (segmentos curtos) = mais viral
-                if avg_dur < 5:
-                    score += 25
-                elif avg_dur < 10:
-                    score += 15
-                elif avg_dur < 15:
-                    score += 5
+                # Ritmo Frenético (TikTok/Reels) = MUITO viral
+                if avg_dur < 3:
+                    score += 30      # Era 25 (para < 5)
+                elif avg_dur < 5:
+                    score += 20      # Era 15
+                elif avg_dur < 8:
+                    score += 10      # Era 5
 
                 # Variação moderada é boa (mantém interesse)
                 if len(durations) > 1:

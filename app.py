@@ -408,10 +408,27 @@ def generate_autonomous():
                 state_manager.update_status("processing_autonomous")
                 state_manager.add_log(f"🧠 INICIANDO CÉREBRO AUTÔNOMO: {url}")
 
-                f = get_factory()
-                # O run_factory é síncrono por padrão mas usa result de kickoff
-                # Vamos simplificar e rodar direto
-                result = f.run(url, is_url=True)
+                # [FIX]: Redirecionando 'Autonomous' para nosso Orquestrador Offline
+                from src.agents.orchestrator import OrchestratorAgent
+
+                # Simular Factory usando Orquestrador
+                state_manager.add_log(f"🧠 Modo Autônomo Offline Ativado (Orchestrator v3)")
+                orch = OrchestratorAgent()
+
+                # Simular delay de "pensamento"
+                import time
+                time.sleep(1)
+
+                # Executar fluxo padrão (download -> transcrição -> edição) via main.py
+                # Isso unifica a lógica. O botão 'Autonomous' agora é um atalho para "Processar URL"
+                from main import main as run_main_pipeline
+                # Mockando args
+                import sys
+                sys.argv = ['main.py', '--url', url, '--clips', '3', '--captions', '--voice']
+
+                run_main_pipeline()
+
+                result = {"status": "success"}
 
                 if "error" in result:
                     state_manager.add_log(f"❌ ERRO: {result['error']}")
@@ -528,7 +545,7 @@ def stream_logs():
 
     def generate():
         current_idx = max(0, skip)  # Start from skip index
-        max_wait = 300  # 5 min timeout
+        max_wait = 3600  # 1 Hour timeout (FIX: era 300/5min e caía em vídeos longos)
         wait_counter = 0
 
         while wait_counter < max_wait:

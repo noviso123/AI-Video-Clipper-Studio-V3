@@ -8,19 +8,19 @@ pyngrok
 yt-dlp>=2024.0.0
 
 # Transcrição & AI
-openai-whisper
+faster-whisper
 langchain-ollama
 torch
 transformers
 sentencepiece
 vosk
-# kokoro-onnx  # Pode ser pesado/complexo no colab inicial, mas vamos manter
+# edge-tts
 # onnxruntime
 
 # Processamento de Vídeo
 moviepy==1.0.3
 ffmpeg-python
-opencv-python
+opencv-python-headless
 Pillow
 
 # Áudio
@@ -28,7 +28,8 @@ librosa
 pydub
 noisereduce
 soundfile
-gTTS
+edge-tts
+soundfile
 
 # NLP
 nltk

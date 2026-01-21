@@ -9,6 +9,9 @@ import json
 from pathlib import Path
 from moviepy.editor import VideoFileClip
 
+# Fix para erros ALSA/Audio em Colab/Linux (Mantido pois é config de driver, não supressão de erro)
+os.environ["SDL_AUDIODRIVER"] = "dummy"
+
 # Fix PATH para FFmpeg
 os.environ["PATH"] += os.pathsep + os.path.dirname(sys.executable)
 
@@ -29,6 +32,7 @@ from src.modules.captions import DynamicCaptions
 from src.modules.thumbnail_generator import ThumbnailGenerator
 from src.modules.narrator import get_narrator
 from src.agents.orchestrator import OrchestratorAgent
+from src.modules.video_normalizer import VideoNormalizer
 
 logger = setup_logger("Main")
 
@@ -87,7 +91,12 @@ def main():
                 v_clip.close()
             except Exception as e:
                 logger.error(f"❌ Erro ao processar vídeo: {e}")
+                logger.error(f"❌ Erro ao processar vídeo: {e}")
                 raise
+
+        # --- NORMALIZAÇÃO (NOVO STEP) ---
+        # Garante que o vídeo esteja em H.264/AAC para evitar erros de AV1 no OpenCV
+        video_data['video_path'] = VideoNormalizer.normalize_video(video_data['video_path'])
 
         logger.info(f"📹 Vídeo: {video_data['metadata']['title']}")
         logger.info(f"⏱️  Duração: {video_data['metadata']['duration']}s")
@@ -109,7 +118,7 @@ def main():
         # --- STAGE 3: PLANEJAMENTO & ANÁLISE (OLLAMA) ---
         logger.info("")
         logger.info("=" * 50)
-        logger.info("STAGE 3: ANÁLISE VIRAL (OLLAMA)")
+        logger.info("STAGE 3: ANÁLISE VIRAL (OFFLINE - RULES)")
         logger.info("=" * 50)
 
         orchestrator = OrchestratorAgent()

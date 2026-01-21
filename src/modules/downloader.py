@@ -50,19 +50,25 @@ class VideoDownloader:
         video_path = self.temp_dir / f"video_{video_id}.mp4"
         audio_path = self.temp_dir / f"audio_{video_id}.mp3"
 
-        # Opções do yt-dlp
+        # Opções do yt-dlp OTIMIZADAS PARA QUALIDADE MÁXIMA
         ydl_opts = {
-            'format': 'bestvideo[height<=1080][ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'outtmpl': str(video_path.with_suffix('')),  # Sem extensão, yt-dlp adiciona
+            # Prioriza melhor vídeo (mesmo 4K) + melhor áudio m4a (AAC)
+            # Editor fará resize de alta qualidade (Lanczos)
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'outtmpl': str(video_path.with_suffix('')),
             'quiet': not Config.DEBUG_MODE,
             'no_warnings': True,
             'extract_flat': False,
             'nocheckcertificate': True,
             'ignoreerrors': True,
-            'extract_flat': False,
-            'nocheckcertificate': True,
-            'ignoreerrors': True,
+            'merge_output_format': 'mp4',  # Garante container final MP4
         }
+
+        # Support for cookies.txt (Colab/Local)
+        cookies_path = Path("cookies.txt")
+        if cookies_path.exists():
+            ydl_opts['cookiefile'] = str(cookies_path)
+            logger.info(f"🍪 Usando cookies: {cookies_path}")
 
         # Adicionar runtime de JS se disponível localmente
         node_path = Path(os.getcwd()) / "bin" / "node" / "bin" / "node"
