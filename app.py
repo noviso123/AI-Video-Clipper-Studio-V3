@@ -19,6 +19,9 @@ from src.core.config import Config
 app = Flask(__name__)
 CORS(app, origins="*")
 
+# Max 500MB for video uploads
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
+
 # =====================
 # CONFIGURATION
 # =====================
@@ -162,6 +165,34 @@ def system_info():
         "exports_files": len(os.listdir(EXPORTS_DIR)) if os.path.exists(EXPORTS_DIR) else 0,
         "exports_size_mb": round(exports_size / (1024 * 1024), 2)
     })
+
+
+@app.route('/api/upload', methods=['POST'])
+def upload_video():
+    """Endpoint para upload de arquivos de vídeo via web"""
+    if 'video' not in request.files:
+        return jsonify({"status": "error", "message": "Nenhum arquivo enviado"}), 400
+
+    file = request.files['video']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "Nome de arquivo inválido"}), 400
+
+    # Limpar caracteres e salvar no temp
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file.filename)
+    dest_path = os.path.join(TEMP_DIR, filename)
+
+    try:
+        os.makedirs(TEMP_DIR, exist_ok=True)
+        file.save(dest_path)
+        return jsonify({
+            "status": "success",
+            "message": "Upload concluído!",
+            "path": dest_path,
+            "filename": filename
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # =====================

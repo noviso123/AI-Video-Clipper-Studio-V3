@@ -647,7 +647,10 @@
                         <div class="input-group">
                             <input type="text" id="input-val" class="form-input"
                                 placeholder="Cole a URL do YouTube aqui...">
-                            <button id="browse-btn" class="input-btn hidden" onclick="browseFile()">📂 Buscar</button>
+                            <input type="file" id="file-input" class="hidden" accept="video/*"
+                                onchange="handleFileUpload(event)">
+                            <button id="browse-btn" class="input-btn hidden" onclick="triggerBrowse()">📂
+                                Selecionar</button>
                         </div>
                     </div>
 
@@ -996,15 +999,72 @@
                 } catch ( e ) { }
             }
 
-            // === ACTIONS ===
+            // === UPLOAD / BROWSE ===
+            function triggerBrowse ()
+            {
+                document.getElementById( 'file-input' ).click();
+            }
+
+            async function handleFileUpload ( event )
+            {
+                const file = event.target.files[ 0 ];
+                if ( !file ) return;
+
+                const step = document.getElementById( 'process-step' );
+                const startBtn = document.getElementById( 'start-btn' );
+
+                setRunningUI( true );
+                startBtn.classList.add( 'hidden' ); // Ensure start is hidden during upload
+                step.innerText = '📤 Enviando arquivo: ' + file.name;
+                step.style.color = '#fbbf24';
+
+                const formData = new FormData();
+                formData.append( 'video', file );
+
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener( 'progress', ( e ) =>
+                {
+                    if ( e.lengthComputable )
+                    {
+                        const percent = Math.round( ( e.loaded / e.total ) * 100 );
+                        updateProgress( percent );
+                    }
+                } );
+
+                xhr.onreadystatechange = () =>
+                {
+                    if ( xhr.readyState === 4 )
+                    {
+                        if ( xhr.status === 200 )
+                        {
+                            const res = JSON.parse( xhr.responseText );
+                            document.getElementById( 'input-val' ).value = res.path;
+                            step.innerText = '✅ Upload concluído! Pronto para gerar clips.';
+                            step.style.color = '#4ade80';
+                            updateProgress( 100 );
+                            setTimeout( () => { setRunningUI( false ); updateProgress( 0 ); }, 2000 );
+                        } else
+                        {
+                            alert( '❌ Erro no upload: ' + xhr.statusText );
+                            setRunningUI( false );
+                        }
+                    }
+                };
+
+                xhr.open( 'POST', '/api/upload', true );
+                xhr.send( formData );
+            }
+
             async function browseFile ()
             {
+                // Fallback para quando o sistema é local (opcional)
                 try
                 {
                     const r = await fetch( '/browse' );
                     const d = await r.json();
                     if ( d.path ) document.getElementById( 'input-val' ).value = d.path;
-                } catch ( e ) { alert( '❌ Erro ao buscar arquivo' ); }
+                } catch ( e ) { triggerBrowse(); }
             }
 
             async function nukeAll ()
