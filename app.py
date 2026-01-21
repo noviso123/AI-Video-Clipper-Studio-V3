@@ -1013,8 +1013,9 @@ if __name__ == '__main__':
     print(f"🐍 Python: {PYTHON_EXE}")
     print(f"📁 Temp: {TEMP_DIR}")
     print(f"📁 Exports: {EXPORTS_DIR}")
+    port = int(os.environ.get("PORT", 5000))
     print("=" * 50)
-    print("🌐 Servidor: http://127.0.0.1:5005")
+    print(f"🌐 Servidor: http://0.0.0.0:{port}")
     print("=" * 50)
 
-    app.run(debug=False, port=5005, threaded=True, host='0.0.0.0')
+    app.run(debug=False, port=port, threaded=True, host='0.0.0.0')
