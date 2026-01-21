@@ -8,6 +8,8 @@ import os
 import json
 from pathlib import Path
 from moviepy.editor import VideoFileClip
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 # Fix para erros ALSA/Audio em Colab/Linux (Mantido pois é config de driver, não supressão de erro)
 os.environ["SDL_AUDIODRIVER"] = "dummy"
@@ -142,42 +144,50 @@ def main():
         logger.info("STAGE 4: EDIÇÃO 9:16")
         logger.info("=" * 50)
 
-        editor = VideoEditor()
-        thumb_gen = ThumbnailGenerator()
-        capt_gen = DynamicCaptions() if args.captions else None
-        narrator = get_narrator() if args.voice else None
-
         output_dir = Config.EXPORT_DIR
         generated_clips = []
 
-        for i, moment in enumerate(viral_moments, 1):
+        # OTIMIZAÇÃO: Carregar editor e analisador
+        editor = VideoEditor()
+        thumb_gen = ThumbnailGenerator()
+
+        # 0. PRE-ANÁLISE (Run once per video to cache results)
+        logger.info("\n🔍 Executando Pré-Análise do vídeo...")
+        editor.create_clip(
+            video_data['video_path'],
+            0, 0.1, # Just a micro-clip to trigger analysis
+            Path("temp/analysis_trigger.mp4")
+        )
+
+        def process_single_moment(i_moment):
+            i, moment = i_moment
             try:
-                logger.info(f"\n🎥 Clipe {i}/{len(viral_moments)}: {moment.get('hook', 'Sem hook')}")
+                logger.info(f"\n🎥 Processando Clipe {i}/{len(viral_moments)}...")
+                start_moment = time.time()
 
                 clip_path = output_dir / f"clip_{i:02d}.mp4"
                 thumb_path = output_dir / f"thumb_{i:02d}.jpg"
                 meta_path = output_dir / f"meta_{i:02d}.json"
 
-                # 1. Thumbnail (Gerar ANTES da edição para usar na intro)
+                # 1. Thumbnail
                 thumb_gen.generate_thumbnail(
-                    video_data['video_path'],  # Vídeo original
-                    moment,  # Momento completo com 'start'
+                    video_data['video_path'],
+                    moment,
                     thumb_path
                 )
-                logger.info(f"   🖼️  Thumbnail: {thumb_path.name}")
 
-                # 2. Edição (Crop 9:16 + Intro com Thumb e Summary + Legendas)
+                # 2. Edição (Crop + Legendas)
                 result = editor.create_clip(
                     video_data['video_path'],
                     moment['start'],
                     moment['end'],
                     clip_path,
                     thumbnail_path=thumb_path,
-                    segments=segments,  # Passar transcrição para legendas
+                    segments=segments,
                     add_captions=True
                 )
 
-                # 5. Metadados
+                # 3. Metadados
                 metadata = moment.get('metadata', {
                     'title': f"Clipe {i}",
                     'hashtags': ['#viral'],
@@ -187,12 +197,23 @@ def main():
                 with open(meta_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-                logger.info(f"   ✅ Clipe gerado com sucesso: {clip_path}")
-                generated_clips.append(clip_path)
+                elapsed = time.time() - start_moment
+                logger.info(f"   ✅ Clipe {i} concluído em {elapsed:.1f}s!")
+                return clip_path
 
             except Exception as e:
                 logger.error(f"   ❌ Erro no clipe {i}: {e}")
-                continue
+                return None
+
+        # PARALELIZAÇÃO: Usar ThreadPoolExecutor para múltiplos clips
+        # No Colab (2-4 cores), renderizar 2 ou 3 em paralelo é ideal
+        max_workers = min(len(viral_moments), 3)
+        logger.info(f"🚀 Iniciando renderização paralela ({max_workers} threads)...")
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            moments_with_index = list(enumerate(viral_moments, 1))
+            results = list(executor.map(process_single_moment, moments_with_index))
+            generated_clips = [r for r in results if r is not None]
 
         logger.info("")
         logger.info("=" * 50)

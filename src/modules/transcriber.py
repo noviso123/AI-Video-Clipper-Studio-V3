@@ -125,7 +125,7 @@ class AudioTranscriber:
 
         # ===== OTIMIZAÇÕES =====
         # Buffer maior = menos chamadas de sistema = mais rápido
-        BUFFER_SIZE = 16000  # 1 segundo de áudio por vez (era 4000)
+        BUFFER_SIZE = 32000
 
         results = []
         processed = 0
@@ -144,14 +144,14 @@ class AudioTranscriber:
                 if result.get('result'):
                     results.append(result)
 
-            processed += BUFFER_SIZE
+            processed += len(data) // 2
 
             # Log de progresso a cada 10%
             progress = (processed / total_frames) * 100
             if progress - last_log >= 10:
                 elapsed = time.time() - trans_start
                 speed = (processed / wf.getframerate()) / elapsed if elapsed > 0 else 0
-                logger.info(f"   📈 Progresso: {progress:.0f}% ({speed:.1f}x tempo real)")
+                logger.info(f"   📈 Progresso: {progress:.0f}% ({speed:.1f}x real-time)")
                 last_log = progress
 
         # Resultado final
@@ -161,9 +161,9 @@ class AudioTranscriber:
 
         wf.close()
 
-        total_time = time.time() - start_time
+        total_time = time.time() - trans_start
         speed_ratio = file_duration / total_time
-        logger.info(f"   ✅ Transcrição completa: {total_time:.1f}s ({speed_ratio:.1f}x tempo real)")
+        logger.info(f"   ✅ VOSK Core: {total_time:.1f}s ({speed_ratio:.1f}x real-time)")
 
         # Formatar segmentos
         formatted = self._format_segments(results)

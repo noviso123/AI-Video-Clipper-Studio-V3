@@ -387,7 +387,10 @@ class FacelessModeProcessor:
 
 
 class VideoEditor:
-    """Editor Principal"""
+    """Editor Principal com Otimizações de Cache para CPU."""
+
+    # Cache estático para análise de vídeo (compartilhado entre instâncias)
+    _analysis_cache = {}
 
     def __init__(self):
         self.target_w = 1080
@@ -403,7 +406,16 @@ class VideoEditor:
             original_clip = VideoFileClip(str(video_path))
             safe_end = min(end, original_clip.duration)
 
-            speaker_data, has_faces = self.tracker.analyze_video_with_audio(video_path, sample_interval=0.2)
+            # 0. Cache / Análise (Run once per video)
+            cache_key = str(video_path)
+            if cache_key in self._analysis_cache:
+                logger.info("   ♻️ Usando cache de análise de rostos")
+                speaker_data, has_faces = self._analysis_cache[cache_key]
+            else:
+                logger.info("   🔍 Iniciando análise de rostos (primeira vez)")
+                speaker_data, has_faces = self.tracker.analyze_video_with_audio(video_path, sample_interval=0.2)
+                self._analysis_cache[cache_key] = (speaker_data, has_faces)
+
             clips_sequence = []
 
             # 1. Thumbnail
@@ -478,9 +490,24 @@ class VideoEditor:
                     logger.warning(f"⚠️ Falha ao normalizar áudio: {e}")
 
             logger.info(f"   💾 Exportando: {output}")
-            # OTIMIZAÇÃO LOCAL: preset ultrafast + threads 8 for max speed
-            final.write_videofile(str(output), fps=30, codec="libx264", bitrate="5000k", audio_codec="aac",
-                                audio_bitrate="128k", threads=12, logger=None, preset='ultrafast')
+
+            # OTIMIZAÇÃO CPU COLAB:
+            # - preset='ultrafast' (velocidade máxima)
+            # - threads=0 (usar todos os núcleos automaticamente)
+            # - audio_fps=44100 (evitar ressampling)
+
+            final.write_videofile(
+                str(output),
+                fps=30,
+                codec="libx264",
+                bitrate="5000k",
+                audio_codec="aac",
+                audio_bitrate="128k",
+                threads=0, # Auto-detect all cores
+                logger=None,
+                preset='ultrafast',
+                audio_fps=44100
+            )
             return output
 
         except Exception as e:
