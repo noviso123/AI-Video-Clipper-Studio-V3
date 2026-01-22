@@ -32,22 +32,31 @@ echo "🐍 [3/6] Instalando pacotes Python..."
 pip install -q undetected-chromedriver selenium webdriver-manager
 pip install -q moviepy vosk pydantic pydub python-telegram-bot
 pip install -q google-auth-oauthlib google-api-python-client google-generativeai
-pip install -q instagrapi flask flask-cors pyngrok  # Cloud & Web
-pip install -q tiktok-uploader  # Para TikTok
+pip install -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web
+pip install -q tiktok-uploader agno # Para TikTok e Agentes
 pip install -q pillow numpy opencv-python psutil
 
-# 4. Criar estrutura de pastas e baixar fontes Premium
+# 4. Criar estrutura de pastas, baixar fontes e MODELOS DE IA
 echo ""
-echo "📁 [4/6] Criando estrutura de pastas e baixando fontes..."
+echo "📁 [4/6] Configurando Assets e Modelos de IA..."
 mkdir -p browser_profiles/cookies
 mkdir -p temp
 mkdir -p exports
 mkdir -p assets/fonts
+mkdir -p models
 
-# Download Oswald Bold
+# Download Fontes Viral
 wget -q https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf -O assets/fonts/Oswald-Bold.ttf
-# Download Montserrat ExtraBold
 wget -q https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf -O assets/fonts/Montserrat-ExtraBold.ttf
+
+# Auto-Download Vosk Model (Small PT) se necessário
+if [ ! -d "models/vosk-model-small-pt-0.3" ]; then
+    echo "   🎙️ Baixando modelo de voz Vosk PT-BR..."
+    wget -q https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip
+    unzip -q vosk-model-small-pt-0.3.zip -d models/
+    rm vosk-model-small-pt-0.3.zip
+    echo "   ✅ Modelo Vosk instalado!"
+fi
 echo "   ✅ Fontes premium instaladas!"
 
 # 5. Criar chrome_wrapper.sh otimizado para Colab
@@ -80,13 +89,10 @@ echo "   Python: $(python --version 2>/dev/null || echo 'Não encontrado')"
 
 echo ""
 echo "============================================================"
-echo "✨ SETUP CONCLUÍDO COM SUCESSO!"
+echo "✨ SETUP NUCLEAR CONCLUÍDO COM SUCESSO!"
 echo "============================================================"
 echo ""
 echo "📋 Próximos passos:"
-echo "   1. Suba seus cookies para 'browser_profiles/cookies/'"
-echo "   2. Suba o arquivo 'credentials.json' para autenticação YouTube"
-echo "   3. Execute: python colab_multi_publish.py video.mp4"
-echo ""
-echo "💡 Dica: Use 'python youtube_oauth_login.py' para autenticar no YouTube"
+echo "   1. O Maestro (run_ultimate_cloud.py) iniciará tudo automaticamente."
+echo "   2. O robô postará em 3 redes simultaneamente."
 echo ""

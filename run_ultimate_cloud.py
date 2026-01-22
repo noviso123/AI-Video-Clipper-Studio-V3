@@ -21,10 +21,29 @@ sys.path.append(str(PROJECT_ROOT))
 
 class CloudMaestro:
     def __init__(self):
+        self._ensure_env_exists()
         load_dotenv()
         self.processes = []
         self.ngrok_url = None
         self.running = True
+
+    def _ensure_env_exists(self):
+        """Cria o .env se não existir, usando variáveis de ambiente do SO (Colab Secrets)"""
+        env_path = PROJECT_ROOT / ".env"
+        if not env_path.exists():
+            logger.info("📝 .env não encontrado. Gerando a partir das chaves injetadas...")
+            keys = [
+                "GEMINI_API_KEY", "TELEGRAM_BOT_TOKEN", "NGROK_AUTHTOKEN",
+                "TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "PEXELS_API_KEY"
+            ]
+            content = "# AI Video Clipper V3 - Auto Generated\n"
+            for k in keys:
+                val = os.getenv(k, "")
+                content += f"{k}={val}\n"
+            
+            with open(env_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            logger.info("✅ .env gerado com sucesso.")
 
     def start_ngrok(self, port=5000):
         """Inicia o túnel Ngrok para a Web UI"""
