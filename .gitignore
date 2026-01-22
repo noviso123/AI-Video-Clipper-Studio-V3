@@ -2,8 +2,8 @@
 # AI Video Clipper V3 - GitIgnore
 # ===========================================
 
-# === Modelos de IA (baixados pelo install) ===
-models/
+# === Modelos de IA (Permitir sincronização para maior rapidez no Colab) ===
+# models/
 
 # === Ambiente Python ===
 .venv/
