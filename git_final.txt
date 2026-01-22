@@ -1,2 +1,0 @@
-7604194 Final Ultimate Push: All assets, configs, and production scripts 100% synced
-6b2c5f9 Ultimate Release V3.2: Full Google Colab Support, Split-Screen (Podcast/Gamer), Auto-Emoji Captions, Impact Transitions & Aesthetic Polishing
