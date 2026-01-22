@@ -32,9 +32,9 @@ echo "🐍 [3/6] Instalando pacotes Python..."
 pip install -q undetected-chromedriver selenium webdriver-manager
 pip install -q moviepy vosk pydantic pydub python-telegram-bot
 pip install -q google-auth-oauthlib google-api-python-client google-generativeai
-pip install -q instagrapi  # Para Instagram headless
+pip install -q instagrapi flask flask-cors pyngrok  # Cloud & Web
 pip install -q tiktok-uploader  # Para TikTok
-pip install -q pillow numpy opencv-python
+pip install -q pillow numpy opencv-python psutil
 
 # 4. Criar estrutura de pastas e baixar fontes Premium
 echo ""
