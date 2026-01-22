@@ -16,13 +16,14 @@ class DynamicCaptions:
     """Legendas estilo TikTok/Reels - Visual Otimizado com Drop Shadow"""
 
     def __init__(self, style: str = 'viral'):
-        self.font_size = 90  # Aumentado para impacto
-        self.color = (255, 215, 0)  # Amarelo Ouro (Gold) - Mais vibrante
+        self.font_size = 85  # Ajustado para equilíbrio
+        self.color = (255, 255, 255)  # Branco padrão
+        self.highlight_color = (255, 215, 0)  # Amarelo Ouro (Gold) para destaques
         self.stroke_color = (0, 0, 0)  # Preto
-        self.stroke_width = 6  # Borda grossa
-        self.shadow_color = (0, 0, 0, 180) # Sombra semi-transparente
-        self.shadow_offset = (5, 5) # Deslocamento da sombra
-        self.pos_y_pct = 0.65  # 65% da altura (Safe zone)
+        self.stroke_width = 8  # Borda bem visível
+        self.shadow_color = (0, 0, 0, 160)
+        self.shadow_offset = (6, 6)
+        self.pos_y_pct = 0.70  # Um pouco mais baixo para podcasts
 
     def create_captions(self, video_clip: CompositeVideoClip, words: List[Dict], position: str = 'bottom') -> CompositeVideoClip:
         """Adiciona legendas ao vídeo"""
@@ -154,15 +155,34 @@ class DynamicCaptions:
             stroke_fill=self.shadow_color
         )
 
-        # 2. Desenhar Texto Principal com Stroke Nativo e Suave
-        draw.text(
-            (x, y),
-            text,
-            font=font,
-            fill=self.color,
-            stroke_width=self.stroke_width,
-            stroke_fill=self.stroke_color
-        )
+        # 2. Desenhar Texto Principal com Stroke e Animação de Escala (Pop-In)
+        # Determinar cor (Highlight)
+        fill_color = self.highlight_color if len(text) > 8 or hash(text) % 4 == 0 else self.color
+        
+        # ANIMAÇÃO: Pop-In (Escala de 0.8 -> 1.0 no início)
+        scale = 1.0
+        if t < 0.1: # Primeiro décimo de segundo
+            scale = 0.8 + (2.0 * t) # vai de 0.8 a 1.0 linearmente
+            
+        if scale != 1.0:
+            original_font_size = self.font_size
+            animated_font = self._get_font(int(original_font_size * scale))
+            
+            # Recalcular bbox para a fonte escalonada
+            abbox = draw.textbbox((0, 0), text, font=animated_font, stroke_width=int(self.stroke_width * scale))
+            atw, ath = abbox[2] - abbox[0], abbox[3] - abbox[1]
+            ax = (size[0] - atw) // 2
+            ay = int(size[1] * pos_y_pct) - (ath // 2)
+            
+            draw.text(
+                (ax, ay), text, font=animated_font, fill=fill_color,
+                stroke_width=int(self.stroke_width * scale), stroke_fill=self.stroke_color
+            )
+        else:
+            draw.text(
+                (x, y), text, font=font, fill=fill_color,
+                stroke_width=self.stroke_width, stroke_fill=self.stroke_color
+            )
 
         # Converter para RGB (MoviePy espera RGB)
         # Criar fundo preto para compor, depois usar máscara
@@ -212,13 +232,12 @@ class DynamicCaptions:
         """Carrega fonte: Prioriza Assets > Windows > Linux > Download Auto (Oswald)"""
 
         # 1. Caminhos locais e sistema
-        project_font = Path("assets/fonts/Oswald-Bold.ttf")
+        base_path = Path(__file__).parent.parent.parent
         font_paths = [
-            project_font,
-            Path("assets/fonts/impact.ttf"),
-            Path("C:/Windows/Fonts/impact.ttf"),       # Windows Impact
-            Path("/usr/share/fonts/truetype/msttcorefonts/Impact.ttf"), # Linux Impact
-            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") # Linux Fallback
+            base_path / "assets/fonts/Oswald-Bold.ttf",
+            base_path / "assets/fonts/impact.ttf",
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"), # Linux Default
+            Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf") # Linux Fallback
         ]
 
         for path in font_paths:
@@ -252,20 +271,31 @@ class DynamicCaptions:
              return ImageFont.load_default()
 
     def _group_words(self, words: List[Dict]) -> List[Dict]:
-        """Agrupa palavras para ritmo rápido (1-2 palavras MAX)"""
-        groups = []
+        """Agrupa palavras para ritmo rápido e adiciona EMOJIS automáticos."""
+        # Dicionário de Emojis Virais (Mapeamento de palavras-chave)
+        EMOJI_MAP = {
+            'DINHEIRO': '💰', 'RICO': '🤑', 'SUCESSO': '🚀', 'BRASIL': '🇧🇷',
+            'AMOR': '❤️', 'CORAÇÃO': '💖', 'FOGO': '🔥', 'QUENTE': '🔥',
+            'TRABALHO': '💼', 'NEGÓCIO': '📊', 'MEDO': '😨', 'ASSUSTADOR': '👻',
+            'FELIZ': '😊', 'ALEGRIA': '🎉', 'CHORAR': '😢', 'TRISTE': '😔',
+            'COMIDA': '🍔', 'FOME': '🍕', 'OLHA': '👀', 'VEJA': '👁️',
+            'TEMPO': '⏱️', 'RELOGIO': '⌚', 'IDEIA': '💡', 'MENTE': '🧠',
+            'ANIMAL': '🐶', 'CACHORRO': '🐕', 'GATO': '🐈', 'FORTE': '💪',
+            'PODCAST': '🎙️', 'VIDEO': '🎬', 'CAMERA': '📷', 'MUSICA': '🎵',
+            'GANHAR': '🏆', 'PERDER': '📉', 'MUNDO': '🌍', 'INTERNET': '🌐'
+        }
 
-        # Algoritmo guloso simples: agrupa até 2 palavras se forem curtas
+        groups = []
         i = 0
         while i < len(words):
             current_word = words[i]
-
-            # Tentar pegar próxima palavra
             next_word = words[i+1] if i + 1 < len(words) else None
 
-            # Critério de agrupamento:
-            # - Se a palavra atual for curta (<5 chars) E a próxima também
-            # - Se o gap entre elas for pequeno (<0.2s)
+            # Processar texto e adicionar emoji se houver match
+            word_clean = current_word.get('word', '').upper().strip(',.!?')
+            emoji = EMOJI_MAP.get(word_clean, '')
+            text_with_emoji = f"{current_word.get('word', '')} {emoji}".strip()
+
             should_group = False
             if next_word:
                 len_ok = len(current_word.get('word','')) < 7 and len(next_word.get('word','')) < 7
@@ -274,15 +304,20 @@ class DynamicCaptions:
                     should_group = True
 
             if should_group:
+                next_word_clean = next_word.get('word', '').upper().strip(',.!?')
+                next_emoji = EMOJI_MAP.get(next_word_clean, '')
+                # Se a primeira palavra já tem emoji, talvez não precise na segunda do grupo
+                final_text = f"{current_word.get('word','')} {next_word.get('word','')} {emoji if emoji else next_emoji}".strip()
+                
                 groups.append({
-                    'text': f"{current_word.get('word','')} {next_word.get('word','')}",
+                    'text': final_text,
                     'start': current_word['start'],
                     'end': next_word['end']
                 })
                 i += 2
             else:
                 groups.append({
-                    'text': current_word.get('word',''),
+                    'text': text_with_emoji,
                     'start': current_word['start'],
                     'end': current_word['end']
                 })

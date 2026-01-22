@@ -11,7 +11,7 @@ import numpy as np
 from pathlib import Path
 from moviepy.editor import (
     VideoFileClip, ImageClip, AudioFileClip, CompositeAudioClip,
-    concatenate_videoclips, CompositeVideoClip, vfx, afx
+    concatenate_videoclips, CompositeVideoClip, vfx, afx, ColorClip
 )
 from moviepy.video.fx.crop import crop
 from moviepy.video.fx.resize import resize
@@ -106,7 +106,7 @@ class DynamicSpeakerTracker:
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.profile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_profileface.xml')
 
-    def analyze_video_with_audio(self, video_path: Path, sample_interval: float = 0.2) -> tuple: # OTIMIZADO: 0.2s
+    def analyze_video_with_audio(self, video_path: Path, sample_interval: float = 0.5) -> tuple: # OTIMIZADO: 0.5s (2.5x faster)
         logger.info("🔍 Analisando vídeo para faces (High Precision)...")
         cap = cv2.VideoCapture(str(video_path))
         fps = cap.get(cv2.CAP_PROP_FPS)
@@ -155,7 +155,7 @@ class DynamicSpeakerTracker:
         faces = []
         # OTIMIZADO: minNeighbors=6, minSize=(40,40)
         for cascade in [self.face_cascade, self.profile_cascade]:
-            detected = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6, minSize=(40, 40))
+            detected = cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=4, minSize=(40, 40))  # OTIMIZADO: velocidade
             for (x, y, w, h) in detected:
                 is_dup = any(abs(f['center_x'] - (x + w//2)) < 60 for f in faces)
                 if not is_dup:
@@ -194,8 +194,20 @@ class DynamicSpeakerTracker:
 
             if audio.get('is_speaking', True):
                 if has_left and has_right:
-                    mode = 'BOTH'
-                    target = self._get_both_area(face_data, width, height)
+                    mode = 'SPLIT_V2'
+                    target = {
+                        'left': self._get_face_area(face_data['left_faces'][0], width, height),
+                        'right': self._get_face_area(face_data['right_faces'][0], width, height)
+                    }
+                elif (has_left or has_right or len(face_data['center_faces']) > 0) and width > height:
+                    # MODO GAMER/REACTION: Vídeo Horizontal + 1 Rosto Detectado
+                    mode = 'GAMER_SPLIT'
+                    all_faces = face_data['left_faces'] + face_data['right_faces'] + face_data['center_faces']
+                    face = all_faces[0]
+                    target = {
+                        'gameplay': {'center_x': width//2, 'center_y': height//2, 'crop_width': int(height*16/9), 'crop_height': height},
+                        'face': self._get_face_area(face, width, height)
+                    }
                 elif has_left:
                     mode = 'LEFT'
                     target = self._get_face_area(face_data['left_faces'][0], width, height)
@@ -258,15 +270,26 @@ class DynamicSpeakerTracker:
         return smoothed
 
     def _get_face_area(self, face, width, height):
+        """
+        Crop 9:16 seguindo a regra de 1/3 (Eye-level).
+        Garante que a cabeça não seja cortada e os olhos fiquem bem posicionados.
+        """
         crop_h = height
         crop_w = int(crop_h * 9 / 16)
         if crop_w > width:
             crop_w = width
             crop_h = int(crop_w * 16 / 9)
 
-        # OTIMIZADO: Margem superior 50% (Safe Zone)
+        # CÁLCULO CINEMATOGRÁFICO:
+        # Puxamos o centro do crop para cima para que os olhos fiquem a ~33% do topo
+        # Usamos uma margem de segurança de 1.2x a altura da face detectada
         face_center_y = face['center_y']
-        target_center_y = min(height - crop_h // 2, max(crop_h // 2, face_center_y + int(face['height'] * 0.5)))
+        
+        # Ponto ideal para os olhos no crop vertical: 1/3 da altura do crop
+        # Compensamos a posição para que a cabeça tenha 'headroom'
+        offset = int(face['height'] * 0.8) 
+        target_center_y = max(crop_h // 2, face_center_y - offset)
+        target_center_y = min(height - crop_h // 2, target_center_y)
 
         return {'center_x': face['center_x'], 'center_y': target_center_y,
                 'crop_width': crop_w, 'crop_height': crop_h}
@@ -375,7 +398,7 @@ class FacelessModeProcessor:
 
             cropped = frame[int(y1):int(y1+actual_h), int(x1):int(x1+actual_w)]
             if cropped.size == 0: return cv2.resize(frame, (self.target_w, self.target_h))
-            return cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_LINEAR)
+            return cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_AREA)  # OTIMIZADO
 
         return clip.fl(lambda gf, t: make_ken_burns_frame(gf, t))
 
@@ -413,7 +436,7 @@ class VideoEditor:
                 speaker_data, has_faces = self._analysis_cache[cache_key]
             else:
                 logger.info("   🔍 Iniciando análise de rostos (primeira vez)")
-                speaker_data, has_faces = self.tracker.analyze_video_with_audio(video_path, sample_interval=0.2)
+                speaker_data, has_faces = self.tracker.analyze_video_with_audio(video_path, sample_interval=0.5)  # OTIMIZADO
                 self._analysis_cache[cache_key] = (speaker_data, has_faces)
 
             clips_sequence = []
@@ -442,17 +465,25 @@ class VideoEditor:
                 main_clip = self.faceless.create_faceless_clip(original_clip, content_start, safe_end, 'ken_burns')
             clips_sequence.append(main_clip)
 
-            # Concatenation with Crossfade
+            # Concatenation with Cinematic Transitions
             if len(clips_sequence) > 1:
-                crossfade = 0.3
-                clips_with_fade = [c.crossfadein(crossfade).crossfadeout(crossfade) for c in clips_sequence]
-                final = concatenate_videoclips(clips_with_fade, method="compose", padding=-crossfade)
+                # EFEITO PREMIUM: White Flash entre clips
+                final_clips = []
+                for i, c in enumerate(clips_sequence):
+                    if i > 0:
+                        # Adicionar um pequeno flash branco de 0.1s
+                        white_flash = ColorClip(size=c.size, color=(255,255,255)).set_duration(0.1).set_opacity(0.8)
+                        final_clips.append(white_flash)
+                    final_clips.append(c.crossfadein(0.2))
+                final = concatenate_videoclips(final_clips, method="compose")
             else:
                 final = concatenate_videoclips(clips_sequence, method="compose")
 
-            # Color Grading
-            logger.info("   🎨 Aplicando Color Grading...")
-            final = final.fx(vfx.colorx, 1.1).fx(vfx.lum_contrast, contrast=0.05, lum=0)
+            # Color Grading ULTIMATE (Saturação + Contraste + Brilho)
+            logger.info("   🎨 Aplicando Color Grading Professionial...")
+            final = (final.fx(vfx.colorx, 1.15)                # Aumento de saturação
+                      .fx(vfx.lum_contrast, contrast=0.1, lum=5) # Mais contraste e leve brilho
+                      .fx(vfx.gamma_corr, gamma=1.1))          # Gamma para tons de pele melhores
 
             # 4. Captions
             if add_captions and segments:
@@ -532,22 +563,97 @@ class VideoEditor:
             absolute_t = start + t
             closest = min(clip_data, key=lambda d: abs(d['timestamp'] - absolute_t))
 
+            # Caso ESPECIAL: SPLIT SCREEN (Podcast Mode)
+            if closest['mode'] == 'SPLIT_V2':
+                # Obter áreas de crop para ambos
+                target_top = closest['target_area']['left']
+                target_bottom = closest['target_area']['right']
+
+                # Crop Top
+                cw1, ch1 = min(target_top['crop_width'], w), min(target_top['crop_height'], h)
+                tx1 = max(0, min(w - cw1, target_top['center_x'] - cw1 // 2))
+                ty1 = max(0, min(h - ch1, target_top['center_y'] - ch1 // 2))
+                top_frame = frame[int(ty1):int(ty1+ch1), int(tx1):int(tx1+cw1)]
+                top_frame = cv2.resize(top_frame, (self.target_w, self.target_h // 2), interpolation=cv2.INTER_AREA)
+
+                # Crop Bottom
+                cw2, ch2 = min(target_bottom['crop_width'], w), min(target_bottom['crop_height'], h)
+                tx2 = max(0, min(w - cw2, target_bottom['center_x'] - cw2 // 2))
+                ty2 = max(0, min(h - ch2, target_bottom['center_y'] - ch2 // 2))
+                bottom_frame = frame[int(ty2):int(ty2+ch2), int(tx2):int(tx2+cw2)]
+                bottom_frame = cv2.resize(bottom_frame, (self.target_w, self.target_h // 2), interpolation=cv2.INTER_AREA)
+
+                # Combinar Verticalmente
+                final_frame = np.vstack((top_frame, bottom_frame))
+                
+                # ADICIONAR DIVISÓRIA PREMIUM (Branco com brilho leve)
+                mid_y = self.target_h // 2
+                cv2.rectangle(final_frame, (0, mid_y-4), (self.target_w, mid_y+4), (255, 255, 255), -1) # Linha principal
+                cv2.line(final_frame, (0, mid_y), (self.target_w, mid_y), (220, 220, 220), 1) # Detalhe interno
+                
+                return final_frame
+
+            elif closest['mode'] == 'GAMER_SPLIT':
+                # Obter áreas de crop (Gameplay Top, Face Bottom)
+                target_game = closest['target_area']['gameplay']
+                target_face = closest['target_area']['face']
+
+                # 1. Renderizar Gameplay (Top) com SMART FILL (Mais Informação)
+                # Em vez de crop 9:16, usamos 16:9 para mostrar o jogo todo e preenchemos o resto com blur
+                cw_g, ch_g = w, h # Pegamos o horizonte todo
+                game_frame_raw = frame[0:h, 0:w]
+                
+                # Criar fundo desfocado (1080x960)
+                bg_game = cv2.resize(game_frame_raw, (self.target_w, self.target_h // 2), interpolation=cv2.INTER_AREA)
+                bg_game = cv2.GaussianBlur(bg_game, (51, 51), 0) # Blur intenso
+                
+                # Renderizar jogo principal por cima (mantendo proporção para não cortar HUD/Mapa)
+                # Redimensionamos o jogo para caber na largura total (1080)
+                game_w_target = self.target_w
+                game_h_target = int(game_w_target * (h / w))
+                game_resized = cv2.resize(game_frame_raw, (game_w_target, game_h_target), interpolation=cv2.INTER_LANCZOS4)
+                
+                # Centralizar o jogo no fundo desfocado
+                start_y = (self.target_h // 2 - game_h_target) // 2
+                bg_game[start_y:start_y+game_h_target, 0:game_w_target] = game_resized
+                game_frame = bg_game
+
+                # 2. Renderizar Face (Bottom) - Foco Total no Gamer
+                cw_f, ch_f = min(target_face['crop_width'], w), min(target_face['crop_height'], h)
+                fx1 = max(0, min(w - cw_f, target_face['center_x'] - cw_f // 2))
+                fy1 = max(0, min(h - ch_f, target_face['center_y'] - ch_f // 2))
+                face_frame = frame[int(fy1):int(fy1+ch_f), int(fx1):int(fx1+cw_f)]
+                face_frame = cv2.resize(face_frame, (self.target_w, self.target_h // 2), interpolation=cv2.INTER_AREA)
+
+                # Combinar
+                final_frame = np.vstack((game_frame, face_frame))
+                
+                # Divisória Estilizada com Brilho
+                mid_y = self.target_h // 2
+                cv2.rectangle(final_frame, (0, mid_y-5), (self.target_w, mid_y+5), (255, 255, 255), -1)
+                cv2.rectangle(final_frame, (0, mid_y-2), (self.target_w, mid_y+2), (200, 200, 200), -1)
+                return final_frame
+
+            # Caso PADRÃO: Speaker-Following (Single Face)
             future_points = [d for d in clip_data if d['timestamp'] > absolute_t]
             if future_points:
                 next_point = min(future_points, key=lambda d: d['timestamp'])
-                time_diff = next_point['timestamp'] - closest['timestamp']
+                
+                # Garantir que o próximo ponto não seja SPLIT (para evitar erro de dict structure)
+                if next_point['mode'] != 'SPLIT_V2' and closest['mode'] != 'SPLIT_V2':
+                    time_diff = next_point['timestamp'] - closest['timestamp']
+                    if time_diff > 0:
+                        progress = min(1.0, (absolute_t - closest['timestamp']) / time_diff)
+                        progress = progress * progress * (3 - 2 * progress) # ease-in-out interpolation
 
-                if time_diff > 0:
-                    progress = min(1.0, (absolute_t - closest['timestamp']) / time_diff)
-                    progress = progress * progress * (3 - 2 * progress) # ease-in-out interpolation
+                        target_x = closest['target_area']['center_x'] + (next_point['target_area']['center_x'] - closest['target_area']['center_x']) * progress
+                        target_y = closest['target_area']['center_y'] + (next_point['target_area']['center_y'] - closest['target_area']['center_y']) * progress
 
-                    target_x = closest['target_area']['center_x'] + (next_point['target_area']['center_x'] - closest['target_area']['center_x']) * progress
-                    target_y = closest['target_area']['center_y'] + (next_point['target_area']['center_y'] - closest['target_area']['center_y']) * progress
-
-                    target = {
-                        'center_x': int(target_x), 'center_y': int(target_y),
-                        'crop_width': closest['target_area']['crop_width'], 'crop_height': closest['target_area']['crop_height']
-                    }
+                        target = {
+                            'center_x': int(target_x), 'center_y': int(target_y),
+                            'crop_width': closest['target_area']['crop_width'], 'crop_height': closest['target_area']['crop_height']
+                        }
+                    else: target = closest['target_area']
                 else: target = closest['target_area']
             else: target = closest['target_area']
 
@@ -557,7 +663,7 @@ class VideoEditor:
 
             cropped = frame[int(y1):int(y1+crop_h), int(x1):int(x1+crop_w)]
             if cropped.size == 0: return cv2.resize(frame, (self.target_w, self.target_h))
-            return cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_LINEAR)
+            return cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_AREA)  # OTIMIZADO
 
         return clip.fl(lambda gf, t: make_speaker_frame(gf, t))
 
@@ -604,7 +710,7 @@ class VideoEditor:
 
             cropped = frame[int(y1):int(y1+actual_h), int(x1):int(x1+actual_w)]
             if cropped.size == 0: result = cv2.resize(frame, (self.target_w, self.target_h))
-            else: result = cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_LINEAR)
+            else: result = cv2.resize(cropped, (self.target_w, self.target_h), interpolation=cv2.INTER_AREA)  # OTIMIZADO
 
             return self._add_impact_text(result, impact_text, progress)
 
@@ -621,10 +727,13 @@ class VideoEditor:
         draw = ImageDraw.Draw(img)
         font_size = 70
 
-        # Load font
-        try: font = ImageFont.truetype("assets/fonts/Oswald-Bold.ttf", font_size)
+        # Load font Portátil (Assets > Desktop > Fallback)
+        base_path = Path(__file__).parent.parent
+        font_path = base_path / "assets/fonts/Oswald-Bold.ttf"
+        
+        try: font = ImageFont.truetype(str(font_path), font_size)
         except:
-            try: font = ImageFont.truetype("C:/Windows/Fonts/impact.ttf", font_size)
+            try: font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
             except: font = ImageFont.load_default()
 
         if progress < 0.2: alpha = int(255 * (progress / 0.2))

@@ -46,8 +46,8 @@ class ThumbnailGenerator:
                 largest_face = max(faces, key=lambda f: f['w'] * f['h'])
                 center_x = largest_face['x'] + largest_face['w'] // 2
                 center_y = largest_face['y'] + largest_face['h'] // 2
-                # Ajuste vertical: subir um pouco (40%) para enquadrar cabeça e ombros
-                center_y = max(0, center_y - int(largest_face['h'] * 0.4))
+                # Ajuste vertical: subir bastante (60%) para garantir rosto completo visível
+                center_y = max(0, center_y - int(largest_face['h'] * 0.6))
 
             # Converter para PIL
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))

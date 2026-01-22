@@ -54,11 +54,16 @@ class VideoClipperBot:
         self.app.add_handler(CommandHandler("status", self.status_command))
         self.app.add_handler(CommandHandler("logs", self.logs_command))
         self.app.add_handler(CommandHandler("nuke", self.nuke_command))
+        self.app.add_handler(CommandHandler("publish", self.publish_command))
+        self.app.add_handler(CommandHandler("queue", self.queue_command))
 
         # Mensagens e Arquivos
         self.app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, self.handle_video))
         self.app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
+
+        # Último vídeo processado por usuário (para /publish)
+        self.last_video = {}  # chat_id -> file_path
 
     def _load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -416,6 +421,97 @@ class VideoClipperBot:
     def _get_today(self):
         from datetime import datetime
         return datetime.now().strftime("%Y%m%d")
+
+    async def publish_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Publica o último vídeo processado em TikTok, Instagram e YouTube.
+        Uso: /publish
+        """
+        chat_id = update.effective_chat.id
+        
+        if chat_id not in self.last_video or not self.last_video[chat_id]:
+            await update.message.reply_text(
+                "⚠️ **Nenhum vídeo para publicar.**\n\n"
+                "Primeiro envie um vídeo ou link para processar, depois use `/publish`.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        video_path = self.last_video[chat_id]
+        if not Path(video_path).exists():
+            await update.message.reply_text("❌ Vídeo não encontrado. Processe novamente.")
+            return
+        
+        status_msg = await update.message.reply_text(
+            "🚀 **INICIANDO PUBLICAÇÃO EM MASSA...**\n\n"
+            "📱 TikTok: ⏳ Aguardando...\n"
+            "📸 Instagram: ⏳ Aguardando...\n"
+            "📺 YouTube: ⏳ Aguardando...",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        
+        try:
+            # Importar PublisherManager
+            from src.publishers.publisher_manager import PublisherManager
+            
+            metadata = {
+                "title": f"Clipe Viral 🚀 #{self._get_today()}",
+                "description": "Publicado automaticamente via AI Video Clipper Studio V3",
+                "hashtags": ["#viral", "#shorts", "#fyp", "#trending"]
+            }
+            
+            manager = PublisherManager()
+            results = manager.publish_all(video_path, metadata, headless=True)
+            
+            # Formatar resultado
+            tiktok_status = "✅" if "http" in str(results.get('tiktok', '')) else "❌"
+            ig_status = "✅" if "http" in str(results.get('instagram', '')) else "❌"
+            yt_status = "✅" if "http" in str(results.get('youtube', '')) else "❌"
+            
+            result_msg = (
+                "🏆 **PUBLICAÇÃO CONCLUÍDA!**\n\n"
+                f"📱 TikTok: {tiktok_status} {results.get('tiktok', 'N/A')}\n"
+                f"📸 Instagram: {ig_status} {results.get('instagram', 'N/A')}\n"
+                f"📺 YouTube: {yt_status} {results.get('youtube', 'N/A')}"
+            )
+            
+            await status_msg.edit_text(result_msg, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Erro na publicação: {e}")
+            await status_msg.edit_text(f"❌ Erro na publicação: {e}")
+
+    async def queue_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        Mostra a fila de agendamento.
+        Uso: /queue
+        """
+        try:
+            from src.publishers.scheduler import PublishScheduler
+            
+            scheduler = PublishScheduler()
+            queue = scheduler.get_queue_status()
+            
+            if not queue:
+                await update.message.reply_text("📭 **Fila de agendamento vazia.**")
+                return
+            
+            msg = "📅 **FILA DE AGENDAMENTO**\n\n"
+            for job in queue[:10]:  # Limitar a 10 jobs
+                status_icon = {
+                    "scheduled": "📅",
+                    "publishing": "📤",
+                    "published": "✅",
+                    "failed": "❌"
+                }.get(job['status'], "❓")
+                
+                platforms = ",".join(job['platforms'])
+                msg += f"{status_icon} `{job['id']}` - {platforms}\n"
+            
+            await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            await update.message.reply_text(f"❌ Erro ao ler fila: {e}")
 
 if __name__ == '__main__':
     token = os.getenv("TELEGRAM_BOT_TOKEN")

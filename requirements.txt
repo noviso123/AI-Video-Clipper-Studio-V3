@@ -14,14 +14,13 @@ werkzeug==3.0.1
 yt-dlp>=2024.1.0
 
 # === Transcrição (Whisper CPU Otimizado) ===
-faster-whisper==1.0.3
-ctranslate2==4.4.0
+vosk>=0.3.45
 tokenizers>=0.15.0
 huggingface-hub>=0.25.0
 
 # === IA / Machine Learning ===
 torch>=2.0.0
-numpy>=1.24.0,<2.0.0
+numpy>=1.24.0
 transformers>=4.36.0
 
 # === Processamento de Vídeo ===
@@ -59,3 +58,11 @@ python-telegram-bot>=20.7
 
 # === Ngrok (para túnel público) ===
 pyngrok>=7.0.0
+
+# === Automação Web (Publicação) ===
+selenium>=4.15.0
+webdriver-manager>=4.0.1
+undetected-chromedriver>=3.5.0
+tiktok-uploader>=0.3.0
+fake-useragent>=1.4.0
+

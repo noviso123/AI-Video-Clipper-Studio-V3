@@ -187,12 +187,39 @@ def main():
                     add_captions=True
                 )
 
-                # 3. Metadados
-                metadata = moment.get('metadata', {
-                    'title': f"Clipe {i}",
-                    'hashtags': ['#viral'],
-                    'description': moment.get('hook', '')
-                })
+                # 3. Metadados Virais (gerados com IA)
+                logger.info("🧠 Gerando metadados virais...")
+                try:
+                    meta_gen = MetadataGenerator()
+                    # Juntar transcrição para contexto
+                    transcript_text = ' '.join([s['text'] for s in segments])
+                    
+                    # Gerar metadados para todas as plataformas
+                    metadata = meta_gen.generate_metadata(
+                        transcript=transcript_text,
+                        viral_moment=moment,
+                        platform="all"
+                    )
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao gerar metadados com IA: {e}. Usando fallback...")
+                    # Fallback para metadados básicos
+                    metadata = {
+                        "tiktok": {
+                            'title': moment.get('hook', f"Clipe {i}")[:50],
+                            'description': moment.get('hook', ''),
+                            'hashtags': ['#viral', '#foryou', '#fyp']
+                        },
+                        "youtube": {
+                            'title': moment.get('hook', f"Clipe {i}")[:90],
+                            'description': moment.get('hook', ''),
+                            'hashtags': ['#Shorts', '#viral']
+                        },
+                        "instagram": {
+                            'title': moment.get('hook', f"Clipe {i}")[:100],
+                            'description': moment.get('hook', ''),
+                            'hashtags': ['#reels', '#viral', '#instagram']
+                        }
+                    }
 
                 with open(meta_path, 'w', encoding='utf-8') as f:
                     json.dump(metadata, f, indent=2, ensure_ascii=False)

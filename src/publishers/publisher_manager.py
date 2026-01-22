@@ -20,39 +20,40 @@ class PublisherManager:
         self.youtube_publisher = YouTubePublisher()
         self.instagram_publisher = InstagramPublisher()
         
-    def publish_all(self, video_path: str, metadata: Dict) -> Dict[str, str]:
+    def publish_all(self, video_path: str, metadata: Dict, headless: bool = True) -> Dict[str, str]:
         """
         Publica o vídeo em todas as plataformas configuradas.
+        Args:
+            video_path: Caminho para o vídeo
+            metadata: Dicionário com title, description, hashtags
+            headless: Se deve rodar em segundo plano (padrão True para Colab/Server)
         Returns:
             Dict: { "tiktok": "http://link...", "youtube": "http://link..." }
         """
         results = {}
         
-        # 1. TikTok
         try:
             # Usar título + hashtags para a descrição
             desc = f"{metadata['title']}\n\n{metadata['description']}\n\n{' '.join(metadata['hashtags'])}"
-            link = self.tiktok_publisher.upload(video_path, desc)
+            link = self.tiktok_publisher.upload(video_path, desc, headless=headless)
             results['tiktok'] = link
         except Exception as e:
             logger.error(f"❌ Erro TikTok: {e}")
             results['tiktok'] = f"Erro: {str(e)}"
 
-        # 2. YouTube Shorts
         try:
             # YouTube Title limit is 100 chars
             title = metadata['title'][:90] 
             desc = f"{metadata['description']}\n\n{' '.join(metadata['hashtags'])}"
-            link = self.youtube_publisher.upload(video_path, title, desc)
+            link = self.youtube_publisher.upload(video_path, title, desc, headless=headless)
             results['youtube'] = link
         except Exception as e:
             logger.error(f"❌ Erro YouTube: {e}")
             results['youtube'] = f"Erro: {str(e)}"
 
-        # 3. Instagram Reels
         try:
             caption = f"{metadata['title']}\n\n{metadata['description']}\n.\n.\n{' '.join(metadata['hashtags'])}"
-            link = self.instagram_publisher.upload(video_path, caption)
+            link = self.instagram_publisher.upload(video_path, caption, headless=headless)
             results['instagram'] = link
         except Exception as e:
             logger.error(f"❌ Erro Instagram: {e}")

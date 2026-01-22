@@ -19,9 +19,14 @@ class Config:
     EXPORT_DIR = BASE_DIR / os.getenv("EXPORT_DIR", "exports")
     ASSETS_DIR = BASE_DIR / "src" / "assets"
 
-    # Ollama (IA Local)
-    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
-    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+    # Agno + Gemini (IA Local/Cloud)
+    # Requer GEMINI_API_KEY no .env
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+    # Mapear para GOOGLE_API_KEY (exigido por Agno e outras libs)
+    if GEMINI_API_KEY:
+        os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
 
     # Transcrição
     WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "pt")
