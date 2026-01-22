@@ -50,6 +50,6 @@ desktop.ini
 test_*.mp3
 test_*.mp4
 
-# === Estado do sistema ===
-state.json
-token.pickle
+# === Estado do sistema (Permitir sincronização síncrona se solicitado)
+# state.json
+# token.pickle
