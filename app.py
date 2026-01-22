@@ -497,6 +497,10 @@ def run_clipper():
     # Reset state
     state_manager.set_project(input_val, mode)
 
+    # Injetar Hashtags no Ambiente para o processo filho
+    mandatory_hashtags = data.get('mandatory_hashtags', '')
+    os.environ["MANDATORY_HASHTAGS"] = mandatory_hashtags
+
     # Build command
     cmd = [PYTHON_EXE, SCRIPT_PATH]
     if mode == 'url':

@@ -42,6 +42,9 @@ class Config:
     DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
+    # Metadados Personalizados
+    MANDATORY_HASHTAGS = os.getenv("MANDATORY_HASHTAGS", "")
+
     @classmethod
     def ensure_directories(cls):
         """Cria diretórios necessários"""

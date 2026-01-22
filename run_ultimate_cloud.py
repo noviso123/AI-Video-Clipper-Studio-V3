@@ -16,7 +16,12 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Maestro")
 
-PROJECT_ROOT = Path(__file__).parent
+# Configuração do Sistema Headless (Fix ALSA/Audio)
+os.environ["SDL_AUDIODRIVER"] = "dummy"
+os.environ["MESA_GL_VERSION_OVERRIDE"] = "3.3"
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+
+PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.append(str(PROJECT_ROOT))
 
 class CloudMaestro:
@@ -138,11 +143,15 @@ class CloudMaestro:
         # 2. Flask Backend/Frontend
         self.run_sub_process("WEB_UI", ["app.py"])
 
-        # 3. Telegram Bot
-        if os.getenv("TELEGRAM_BOT_TOKEN"):
+        # 3. Telegram Bot (Apenas se configurado e HABILITADO)
+        enable_bot = os.getenv("ENABLE_TELEGRAM_BOT", "false").lower() == "true"
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        
+        if enable_bot and token:
             self.run_sub_process("TELEGRAM_BOT", ["src/bot/telegram_bot.py"])
         else:
-            logger.warning("⚠️ TELEGRAM_BOT_TOKEN ausente. Bot não será iniciado.")
+            reason = "Desativado via ENABLE_TELEGRAM_BOT" if not enable_bot else "Token ausente"
+            logger.info(f"🤖 Bot de Telegram ignorado ({reason}).")
 
         # Manter vivo
         try:

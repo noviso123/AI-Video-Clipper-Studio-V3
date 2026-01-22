@@ -29,7 +29,7 @@ fi
 # 3. Instalar dependências Python para TODAS as plataformas (Versão Ultimate)
 echo ""
 echo "🐍 [3/6] Instalando pacotes Python..."
-pip install -q undetected-chromedriver selenium webdriver-manager
+pip install -q yt-dlp undetected-chromedriver selenium webdriver-manager
 pip install -q moviepy vosk pydantic pydub python-telegram-bot
 pip install -q google-auth-oauthlib google-api-python-client google-generativeai
 pip install -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web

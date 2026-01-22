@@ -58,6 +58,7 @@ class VideoClipperBot:
         self.app.add_handler(CommandHandler("queue", self.queue_command))
 
         # Mensagens e Arquivos
+        self.app.add_handler(CommandHandler("set_hashtags", self.set_hashtags_command))
         self.app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, self.handle_video))
         self.app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
         self.app.add_handler(CallbackQueryHandler(self.button_handler))
@@ -86,7 +87,8 @@ class VideoClipperBot:
                 'min': 30,
                 'max': 60,
                 'captions': True,
-                'voice': False
+                'voice': False,
+                'hashtags': ""
             }
             self._save_config()
         return self.user_configs[str_id]
@@ -141,6 +143,9 @@ class VideoClipperBot:
                 InlineKeyboardButton(f"Clipes: {config['clips']}", callback_data='cycle_clips'),
                 InlineKeyboardButton(f"Tempo: {config['min']}-{config['max']}s", callback_data='cycle_duration')
             ],
+            [
+                InlineKeyboardButton(f"Hashtags: {config.get('hashtags', 'Nenhuma')}", callback_data='edit_hashtags')
+            ],
             [InlineKeyboardButton("💾 Salvar & Fechar", callback_data='close_settings')]
         ]
 
@@ -149,7 +154,8 @@ class VideoClipperBot:
             f"📝 **Legendas:** {e_captions}\n"
             f"🗣️ **Narração:** {e_voice}\n"
             f"✂️ **Qtd. Clipes:** {config['clips']}\n"
-            f"⏱️ **Duração:** {config['min']}s a {config['max']}s"
+            f"⏱️ **Duração:** {config['min']}s a {config['max']}s\n"
+            f"🏷️ **Hashtags:** {config.get('hashtags', '')}"
         )
 
         if is_edit:
@@ -258,7 +264,7 @@ class VideoClipperBot:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=str(PROJECT_ROOT),
-                env={**os.environ, "PYTHONIOENCODING": "utf-8"}
+                env={**os.environ, "PYTHONIOENCODING": "utf-8", "MANDATORY_HASHTAGS": config.get('hashtags', '')}
             )
 
             self.active_processes[chat_id] = process
@@ -379,6 +385,32 @@ class VideoClipperBot:
 
             self._save_config()
             await self._show_settings_menu(update, context, config, is_edit=True)
+
+        elif data == 'edit_hashtags':
+            await query.message.reply_text(
+                "🏷️ **Configurar Hashtags**\n\n"
+                "Para definir hashtags obrigatórias em todos os vídeos, use o comando:\n"
+                "`/set_hashtags #viral, #clipper, #meu_canal`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+
+    async def set_hashtags_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        chat_id = update.effective_chat.id
+        config = self._get_user_config(chat_id)
+        
+        args = context.args
+        if not args:
+            await update.message.reply_text(
+                "⚠️ **Uso incorreto.**\nExemplo: `/set_hashtags #viral, #clipper`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        hashtags = " ".join(args)
+        config['hashtags'] = hashtags
+        self._save_config()
+        
+        await update.message.reply_text(f"✅ **Hashtags atualizadas:** `{hashtags}`", parse_mode=ParseMode.MARKDOWN)
 
     async def cancel_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id

@@ -680,6 +680,13 @@
                     </label>
                 </div>
 
+                <!-- Mandatory Hashtags -->
+                <div class="form-group">
+                    <label class="form-label">Hashtags Obrigatórias</label>
+                    <input type="text" id="input-hashtags" class="form-input"
+                        placeholder="#viral, #seu_canal, #clipper">
+                </div>
+
                 <!-- Progress -->
                 <div class="progress-container">
                     <div class="progress-header">
@@ -795,7 +802,8 @@
                         min_duration: parseInt(document.getElementById('input-min-dur').value) || 60,
                         max_duration: parseInt(document.getElementById('input-max-dur').value) || 90,
                         captions: document.getElementById('check-captions').checked,
-                        critic: document.getElementById('check-critic').checked
+                        critic: document.getElementById('check-critic').checked,
+                        mandatory_hashtags: document.getElementById('input-hashtags').value.trim()
                     })
                 });
             } catch (e) {

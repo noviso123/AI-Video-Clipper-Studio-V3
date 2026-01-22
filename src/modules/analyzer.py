@@ -7,6 +7,7 @@ import re
 import math
 from typing import List, Dict, Tuple
 from ..core.logger import setup_logger
+from ..core.config import config
 
 logger = setup_logger(__name__)
 
@@ -475,9 +476,15 @@ class ViralAnalyzer:
         return results
 
     def _generate_metadata(self, text: str, hook: str, score: float) -> Dict:
-        """Gera metadados com score."""
+        """Gera metadados com score e hashtags obrigatórias."""
         words = re.findall(r'\w{5,}', text.lower())
         unique_words = list(set(words))[:3]
+        
+        # Processar hashtags obrigatórias
+        mandatory = config.MANDATORY_HASHTAGS
+        extra_tags = [t.strip() for t in mandatory.split(',') if t.strip()]
+        if not all(t.startswith('#') for t in extra_tags):
+            extra_tags = [f"#{t.replace('#', '')}" for t in extra_tags]
 
         # Emoji baseado no score
         if score >= 80:
@@ -489,14 +496,18 @@ class ViralAnalyzer:
         else:
             emoji = '📹'
 
+        # Mesclar hashtags
+        all_hashtags = list(set([f"#{w}" for w in unique_words] + ['#viral', '#shorts', '#trending'] + extra_tags))
+        hashtag_str = " ".join(all_hashtags)
+
         return {
-            'title': f"{emoji} {hook}",
-            'hashtags': [f"#{w}" for w in unique_words] + ['#viral', '#shorts', '#trending'],
-            'description': f"Score: {score}/100 - {text[:100]}..." if text else hook,
+            'title': f"{emoji} {hook} {mandatory}".strip(),
+            'hashtags': all_hashtags,
+            'description': f"{text[:100]}... {hashtag_str}" if text else f"{hook} {hashtag_str}",
             'viral_titles': [
-                f"🔥 {hook}",
-                f"😱 {hook}",
-                f"⚠️ VOCÊ PRECISA VER: {hook[:30]}..."
+                f"🔥 {hook} {mandatory}".strip(),
+                f"😱 {hook} {mandatory}".strip(),
+                f"⚠️ VOCÊ PRECISA VER: {hook[:30]}... {mandatory}".strip()
             ],
             'viral_score': score
         }
