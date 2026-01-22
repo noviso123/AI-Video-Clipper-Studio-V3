@@ -16,10 +16,14 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Maestro")
 
-# Configuração do Sistema Headless (Fix ALSA/Audio)
+# Configuração do Sistema Headless (Fix ALSA/Audio/XDG)
 os.environ["SDL_AUDIODRIVER"] = "dummy"
+os.environ["XDG_RUNTIME_DIR"] = "/tmp/runtime-root"
 os.environ["MESA_GL_VERSION_OVERRIDE"] = "3.3"
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+
+# Garantir que o dir XDG existe
+os.makedirs(os.environ["XDG_RUNTIME_DIR"], exist_ok=True)
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.append(str(PROJECT_ROOT))

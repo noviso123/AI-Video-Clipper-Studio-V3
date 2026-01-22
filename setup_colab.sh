@@ -12,7 +12,21 @@ echo "📅 $(date)"
 echo ""
 echo "📦 [1/6] Instalando dependências do sistema..."
 apt-get update -qq
-apt-get install -y -qq wget curl unzip libnss3 libgconf-2-4 libxi6 libgbm-dev ffmpeg libxss1 libasound2
+apt-get install -y -qq wget curl unzip libnss3 libgconf-2-4 libxi6 libgbm-dev ffmpeg libxss1 libasound2 imagemagick
+
+# Fix ImageMagick policy para permitir MoviePy escrever textos
+cat <<'EOF' > /etc/ImageMagick-6/policy.xml
+<policymap>
+  <policy domain="path" rights="none" pattern="@*"/>
+  <policy domain="coder" rights="none" pattern="PS"/>
+  <policy domain="coder" rights="none" pattern="EPS"/>
+  <policy domain="coder" rights="none" pattern="PDF"/>
+  <policy domain="coder" rights="none" pattern="XPS"/>
+</policymap>
+EOF
+# No Colab/Ubuntu 22.04 a política padrão as vezes bloqueia, vamos remover a restrição de PDF/Label
+sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml 2>/dev/null
+sed -i 's/rights="none" pattern="label"/rights="read|write" pattern="label"/' /etc/ImageMagick-6/policy.xml 2>/dev/null
 
 # 2. Instalar Google Chrome (Versão Estável)
 echo ""
@@ -30,7 +44,7 @@ fi
 echo ""
 echo "🐍 [3/6] Instalando pacotes Python..."
 pip install -q yt-dlp undetected-chromedriver selenium webdriver-manager
-pip install -q moviepy vosk pydantic pydub python-telegram-bot
+pip install -q moviepy vosk pydantic pydub python-telegram-bot edge-tts
 pip install -q google-auth-oauthlib google-api-python-client google-generativeai
 pip install -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web
 pip install -q tiktok-uploader agno # Para TikTok e Agentes

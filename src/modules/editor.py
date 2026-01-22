@@ -25,7 +25,24 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageFont
 
+from PIL import Image, ImageDraw, ImageFont
+import subprocess
+
 logger = setup_logger(__name__)
+
+# --- CONFIGURAÇÃO MOVIESPY & IMAGEMAGICK ---
+from moviepy.config import change_settings
+if os.name == 'nt':
+    # Windows (Default original)
+    IMAGEMAGICK_BINARY = r"C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe"
+else:
+    # Linux / Colab
+    IMAGEMAGICK_BINARY = "/usr/bin/convert"
+
+# Aplicar se o binário existir
+if os.path.exists(IMAGEMAGICK_BINARY):
+    change_settings({"IMAGEMAGICK_BINARY": IMAGEMAGICK_BINARY})
+# -------------------------------------------
 
 
 class KeyframeAnimator:
