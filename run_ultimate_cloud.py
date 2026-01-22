@@ -48,21 +48,40 @@ class CloudMaestro:
     def start_ngrok(self, port=5000):
         """Inicia o túnel Ngrok para a Web UI"""
         token = os.getenv("NGROK_AUTHTOKEN")
-        if not token:
-            logger.warning("⚠️ NGROK_AUTHTOKEN não encontrado. Web UI será apenas local.")
+        if not token or len(token) < 20:
+            logger.warning("⚠️ NGROK_AUTHTOKEN inválido ou ausente. Web UI será apenas local.")
+            print("\n❌ ERRO NGROK: Token inválido! Obtenha um novo em https://dashboard.ngrok.com/get-started/your-authtoken\n")
             return
 
         try:
-            from pyngrok import ngrok
+            from pyngrok import ngrok, conf
+            # Limpar instâncias anteriores do ngrok
+            ngrok.kill()
+            
             ngrok.set_auth_token(token)
             public_url = ngrok.connect(port)
             self.ngrok_url = public_url.public_url
             logger.info(f"🌐 NGROK ATIVO: {self.ngrok_url}")
             print(f"\n{'='*60}\n🚀 WEB UI ACESSÍVEL EM: {self.ngrok_url}\n{'='*60}\n")
-        except ImportError:
-            logger.error("❌ pyngrok não instalado. execute: pip install pyngrok")
         except Exception as e:
             logger.error(f"❌ Erro ao iniciar Ngrok: {e}")
+            if "ERR_NGROK_105" in str(e):
+                print("\n❌ ERRO NGROK (105): Seu token parece estar mal formatado. Revise-o no Dashboard do Ngrok.")
+
+    def _cleanup_environment(self):
+        """Limpa processos fantasmas antes de começar"""
+        logger.info("🧹 Limpando ambiente de processos antigos...")
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                # Matar outros processos python que não sejam este
+                if proc.info['pid'] != os.getpid() and 'python' in proc.info['name']:
+                    cmd = " ".join(proc.info['cmdline'] or [])
+                    if "app.py" in cmd or "telegram_bot.py" in cmd or "run_ultimate_cloud.py" in cmd:
+                        logger.info(f"   💀 Matando processo zumbi: {proc.info['pid']} ({cmd})")
+                        proc.kill()
+        except:
+            pass
 
     def run_sub_process(self, name, command):
         """Roda um script python em background"""
@@ -110,6 +129,9 @@ class CloudMaestro:
         logger.info("✅ Todos os serviços parados.")
 
     def start_everything(self):
+        # 0. Limpar Ambiente
+        self._cleanup_environment()
+
         # 1. Ngrok para Flask (Porta 5000 default)
         self.start_ngrok(5000)
 
