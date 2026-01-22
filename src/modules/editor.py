@@ -106,41 +106,54 @@ class DynamicSpeakerTracker:
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.profile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_profileface.xml')
 
-    def analyze_video_with_audio(self, video_path: Path, sample_interval: float = 0.5) -> tuple: # OTIMIZADO: 0.5s (2.5x faster)
-        logger.info("🔍 Analisando vídeo para faces (High Precision)...")
+    def analyze_video_with_audio(self, video_path: Path, sample_interval: float = 0.5) -> tuple:
+        """Versão SUPER-OTIMIZADA para Colab: Detecção Paralela."""
+        logger.info("🔍 Analisando vídeo para faces (Parallel CPU)...")
         cap = cv2.VideoCapture(str(video_path))
         fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         sample_frames = max(1, int(fps * sample_interval))
-
-        face_timeline = []
-        frame_idx = 0
-
-        while cap.isOpened():
+        
+        # Coletar frames para processar em massa
+        frames_to_process = []
+        for f_idx in range(0, total_frames, sample_frames):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, f_idx)
             ret, frame = cap.read()
             if not ret: break
-
-            if frame_idx % sample_frames == 0:
-                timestamp = frame_idx / fps
-                faces = self._detect_all_faces(frame)
-
-                if faces:
-                    positions = self._classify_face_positions(faces, width)
-                    face_timeline.append({
-                        'timestamp': timestamp,
-                        'faces': faces,
-                        'left_faces': positions['left'],
-                        'right_faces': positions['right'],
-                        'center_faces': positions['center'],
-                        'frame_width': width,
-                        'frame_height': height
-                    })
-            frame_idx += 1
+            frames_to_process.append((f_idx, frame))
         cap.release()
 
-        face_ratio = len(face_timeline) / max(1, frame_idx // sample_frames)
-        has_faces = face_ratio > 0.3
+        # Processamento Paralelo usando todos os cores (Colab Friendly)
+        from concurrent.futures import ThreadPoolExecutor
+        import multiprocessing
+        num_cores = multiprocessing.cpu_count()
+        
+        face_timeline = []
+        
+        def process_single_frame(data):
+            f_idx, frame = data
+            timestamp = f_idx / fps
+            faces = self._detect_all_faces(frame)
+            if faces:
+                positions = self._classify_face_positions(faces, width)
+                return {
+                    'timestamp': timestamp,
+                    'faces': faces,
+                    'left_faces': positions['left'],
+                    'right_faces': positions['right'],
+                    'center_faces': positions['center'],
+                    'frame_width': width,
+                    'frame_height': height
+                }
+            return None
+
+        with ThreadPoolExecutor(max_workers=num_cores) as executor:
+            results = list(executor.map(process_single_frame, frames_to_process))
+            face_timeline = [r for r in results if r is not None]
+
+        has_faces = face_ratio > 0.2 # Limiar levemente menor para garantir cobertura
 
         if has_faces:
             logger.info(f"✅ Modo: WITH FACES ({int(face_ratio*100)}% com rostos)")
@@ -424,8 +437,9 @@ class VideoEditor:
     def create_clip(self, video_path: Path, start: float, end: float, output: Path,
                    thumbnail_path: Path = None, hook_text: str = None, segments: list = None,
                    add_captions: bool = True, **kwargs) -> Path:
+        import gc
         try:
-            logger.info(f"🎬 Editando clipe: {start}s -> {end}s")
+            logger.info(f"🎬 Editando clipe (Otimizado): {start}s -> {end}s")
             original_clip = VideoFileClip(str(video_path))
             safe_end = min(end, original_clip.duration)
 
@@ -485,12 +499,14 @@ class VideoEditor:
                       .fx(vfx.lum_contrast, contrast=0.1, lum=5) # Mais contraste e leve brilho
                       .fx(vfx.gamma_corr, gamma=1.1))          # Gamma para tons de pele melhores
 
-            # 4. Captions
+            # 4. Captions (OTIMIZADO: Sem recarregar modelo)
             if add_captions and segments:
                 logger.info("   📝 Adicionando legendas...")
                 try:
-                    transcriber = AudioTranscriber()
-                    words = transcriber.get_words_for_clip(segments, start, safe_end)
+                    from .transcriber import AudioTranscriber
+                    if not hasattr(self, '_transcriber'):
+                        self._transcriber = AudioTranscriber()
+                    words = self._transcriber.get_words_for_clip(segments, start, safe_end)
 
                     # Adjust offset for crossfades/hooks
                     crossfade_offset = (len(clips_sequence) - 1) * 0.3 if len(clips_sequence) > 1 else 0
@@ -531,13 +547,14 @@ class VideoEditor:
                 str(output),
                 fps=30,
                 codec="libx264",
-                bitrate="5000k",
+                bitrate="8000k",
                 audio_codec="aac",
-                audio_bitrate="128k",
-                threads=0, # Auto-detect all cores
+                audio_bitrate="192k",
+                threads=0, 
                 logger=None,
                 preset='ultrafast',
-                audio_fps=44100
+                audio_fps=44100,
+                ffmpeg_params=["-movflags", "+faststart", "-crf", "18"]
             )
             return output
 
@@ -549,6 +566,7 @@ class VideoEditor:
             if 'final' in locals():
                 try: final.close()
                 except: pass
+            gc.collect() # LIBERAR RAM IMEDIATAMENTE
 
     def _create_speaker_clip(self, original_clip, start, end, speaker_data):
         clip = original_clip.subclip(start, end)

@@ -36,18 +36,39 @@ def publish_all_optimized(video_path: str, meta_path: str = None):
             "hashtags": ["#AI", "#Automation", "#Cloud", "#Viral"]
         }
 
-    # 2. Executar Publicação
+    # 2. Executar Publicação PARALELA (Parallel Uploads)
+    from concurrent.futures import ThreadPoolExecutor
     manager = PublisherManager()
-    try:
-        results = manager.publish_all(video_path, metadata, headless=True)
-        
-        print("\n" + "="*50)
-        print("📊 RELATÓRIO FINAL DE PUBLICAÇÃO")
-        print("="*50)
-        for platform, status in results.items():
-            status_icon = "✅" if "http" in status or "sucesso" in status.lower() else "❌"
-            print(f"{status_icon} {platform.upper()}: {status}")
-        print("="*50)
+    
+    platforms = ['youtube', 'instagram', 'tiktok']
+    results = {}
+    
+    def single_upload(platform):
+        try:
+            logger.info(f"📤 Iniciando upload para {platform.upper()}...")
+            if platform == 'youtube':
+                return platform, manager.youtube.publish(video_path, metadata, headless=True)
+            elif platform == 'instagram':
+                return platform, manager.instagram.publish(video_path, metadata, headless=True)
+            elif platform == 'tiktok':
+                # TikTok via undetected-chrome (Cuidado com concorrência de perfis se usar o mesmo)
+                return platform, manager.tiktok.publish(video_path, metadata, headless=True)
+        except Exception as e:
+            return platform, f"Erro: {str(e)}"
+
+    print("⚡ Realizando uploads simultâneos (Multi-Threading)...")
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        upload_results = list(executor.map(single_upload, platforms))
+        for platform, status in upload_results:
+            results[platform] = status
+
+    print("\n" + "="*50)
+    print("📊 RELATÓRIO FINAL DE PUBLICAÇÃO (SUPER-OTIMIZADO)")
+    print("="*50)
+    for platform, status in results.items():
+        status_icon = "✅" if "http" in status or "sucesso" in status.lower() or "ok" in status.lower() else "❌"
+        print(f"{status_icon} {platform.upper()}: {status}")
+    print("="*50)
         
     except Exception as e:
         print(f"❌ Erro Crítico na Publicação Global: {e}")
