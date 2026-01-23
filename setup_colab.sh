@@ -40,15 +40,15 @@ else
     echo "   ✅ Google Chrome já instalado."
 fi
 
-# 3. Instalar dependências Python para TODAS as plataformas (Versão Ultimate)
+# 3. Instalar dependências Python (Sincronizado com Colab)
 echo ""
 echo "🐍 [3/6] Instalando pacotes Python..."
-pip install --upgrade -q yt-dlp undetected-chromedriver selenium webdriver-manager
-pip install --upgrade -q moviepy vosk pydantic pydub python-telegram-bot edge-tts
-pip install --upgrade -q google-auth-oauthlib google-api-python-client google-generativeai
-pip install --upgrade -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web
-pip install --upgrade -q tiktok-uploader agno # Para TikTok e Agentes
-pip install --upgrade -q pillow numpy opencv-python psutil
+# Instalar um a um ou em pequenos grupos para isolar falhas
+pip install -q yt-dlp edge-tts
+pip install -q moviepy vosk pydantic pydub
+pip install -q python-telegram-bot google-generativeai
+pip install -q instagrapi flask flask-cors pyngrok python-dotenv
+pip install -q tiktok-uploader agno pillow numpy opencv-python psutil
 
 # 4. Criar estrutura de pastas, baixar fontes e MODELOS DE IA
 echo ""
