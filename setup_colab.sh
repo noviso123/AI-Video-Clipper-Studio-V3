@@ -43,12 +43,12 @@ fi
 # 3. Instalar dependências Python para TODAS as plataformas (Versão Ultimate)
 echo ""
 echo "🐍 [3/6] Instalando pacotes Python..."
-pip install -q yt-dlp undetected-chromedriver selenium webdriver-manager
-pip install -q moviepy vosk pydantic pydub python-telegram-bot edge-tts
-pip install -q google-auth-oauthlib google-api-python-client google-generativeai
-pip install -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web
-pip install -q tiktok-uploader agno # Para TikTok e Agentes
-pip install -q pillow numpy opencv-python psutil
+pip install --upgrade -q yt-dlp undetected-chromedriver selenium webdriver-manager
+pip install --upgrade -q moviepy vosk pydantic pydub python-telegram-bot edge-tts
+pip install --upgrade -q google-auth-oauthlib google-api-python-client google-generativeai
+pip install --upgrade -q instagrapi flask flask-cors pyngrok python-dotenv # Cloud & Web
+pip install --upgrade -q tiktok-uploader agno # Para TikTok e Agentes
+pip install --upgrade -q pillow numpy opencv-python psutil
 
 # 4. Criar estrutura de pastas, baixar fontes e MODELOS DE IA
 echo ""
@@ -100,6 +100,8 @@ echo ""
 echo "✅ [6/6] Verificando instalação..."
 echo "   Chrome: $(google-chrome --version 2>/dev/null || echo 'Não encontrado')"
 echo "   Python: $(python --version 2>/dev/null || echo 'Não encontrado')"
+echo "   Edge-TTS: $(python -c 'import edge_tts; print(\"OK\")' 2>/dev/null || echo '❌ FALHOU')"
+echo "   MoviePy: $(python -c 'import moviepy; print(\"OK\")' 2>/dev/null || echo '❌ FALHOU')"
 
 echo ""
 echo "============================================================"

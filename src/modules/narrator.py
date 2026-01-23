@@ -10,7 +10,11 @@ import asyncio
 import ssl
 import certifi
 from pathlib import Path
-import edge_tts
+try:
+    import edge_tts
+except ImportError:
+    edge_tts = None
+    logger.warning("⚠️ Módulo edge-tts não encontrado. Falback offline será usado.")
 from ..core.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -41,9 +45,9 @@ class VoiceNarrator:
         Gera áudio usando a API Python do edge-tts.
         Executa o loop asyncio de forma síncrona para compatibilidade.
         """
-        try:
-            logger.info(f"🎙️ Gerando narração (Edge-TTS API): '{text[:30]}...'")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            if not edge_tts:
+                logger.warning("⚠️ edge-tts não disponível. Usando fallback offline.")
+                return self._generate_offline_fallback(text, output_path)
 
             # Executar async rodando em loop sincrono
             asyncio.run(self._generate_async(text, output_path))
