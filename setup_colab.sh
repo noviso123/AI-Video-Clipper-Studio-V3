@@ -40,15 +40,16 @@ else
     echo "   ✅ Google Chrome já instalado."
 fi
 
-# 3. Instalar dependências Python (Sincronizado com Colab)
+# 3. Instalar dependências Python (Sincronizado com Colab - Fix de Versões)
 echo ""
-echo "🐍 [3/6] Instalando pacotes Python..."
-# Instalar um a um ou em pequenos grupos para isolar falhas
+echo "🐍 [3/6] Instalando pacotes Python (Modo Resiliente)..."
+# Forçar versões compatíveis com o ecossistema Colab para evitar quebras em cascata
+pip install -q "numpy<2.0.0" "pydantic<2.10.0" "pillow<11.0.0"
 pip install -q yt-dlp edge-tts
-pip install -q moviepy vosk pydantic pydub
+pip install -q "moviepy==1.0.3" vosk pydub
 pip install -q python-telegram-bot google-generativeai
 pip install -q instagrapi flask flask-cors pyngrok python-dotenv
-pip install -q tiktok-uploader agno pillow numpy opencv-python psutil
+pip install -q tiktok-uploader agno opencv-python psutil
 
 # 4. Criar estrutura de pastas, baixar fontes e MODELOS DE IA
 echo ""
@@ -100,8 +101,8 @@ echo ""
 echo "✅ [6/6] Verificando instalação..."
 echo "   Chrome: $(google-chrome --version 2>/dev/null || echo 'Não encontrado')"
 echo "   Python: $(python --version 2>/dev/null || echo 'Não encontrado')"
-echo "   Edge-TTS: $(python -c 'import edge_tts; print(\"OK\")' 2>/dev/null || echo '❌ FALHOU')"
-echo "   MoviePy: $(python -c 'import moviepy; print(\"OK\")' 2>/dev/null || echo '❌ FALHOU')"
+echo "   Edge-TTS: $(python3 -c 'import edge_tts; print(\"OK\")' 2>&1 || echo '❌ FALHOU')"
+echo "   MoviePy: $(python3 -c 'import moviepy.editor; print(\"OK\")' 2>&1 || echo '❌ FALHOU')"
 
 echo ""
 echo "============================================================"
