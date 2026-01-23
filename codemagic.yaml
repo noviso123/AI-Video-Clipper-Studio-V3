@@ -1,0 +1,55 @@
+workflows:
+  ios-release:
+    name: iOS Production Build
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    
+    environment:
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: com.videoclipper.ai
+      
+      flutter: stable
+      xcode: 15.2
+      cocoapods: default
+      
+      vars:
+        APP_NAME: "AI Video Clipper"
+    
+    scripts:
+      - name: 🔑 Setup Certificados iOS
+        script: |
+          echo "Configurando certificados Apple Developer..."
+          # Auto-gerenciado pelo Codemagic
+      
+      - name: 📦 Install Flutter Dependencies
+        script: |
+          cd $CM_BUILD_DIR
+          flutter pub get
+      
+      - name: 🧪 Run Tests (opcional)
+        script: |
+          flutter analyze
+          # flutter test (quando tiver testes)
+      
+      - name: 🏗️ Build iOS App
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=$CM_BUILD_DIR/ios/ExportOptions.plist
+      
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - flutter_drive.log
+    
+    publishing:
+      email:
+        recipients:
+          - seu-email@example.com
+        notify:
+          success: true
+          failure: true
+      
+      # Opcional: Upload direto para App Store Connect
+      # app_store_connect:
+      #   api_key: $APP_STORE_CONNECT_KEY
+      #   submit_to_testflight: true

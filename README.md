@@ -1,134 +1,61 @@
-# 🎬 AI Video Clipper Studio V3
+# AI Video Clipper iOS
 
-> **Gerador automático de clips virais para YouTube/TikTok/Reels**
-> Transcrição em Português Brasileiro • 100% Offline • Interface Web Moderna
+**App Flutter 100% Native para iPhone 16E**
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
-
----
-
-## ⚡ Instalação Rápida (Clone e Use!)
-
-### 🪟 Windows
-```batch
-git clone https://github.com/noviso123/AI-Video-Clipper-Studio-V3.git
-cd AI-Video-Clipper-Studio-V3
-install.bat
-start_system.bat
-```
-
-### 🐧 Linux (Ubuntu, Fedora, Bazzite, etc)
-```bash
-git clone https://github.com/noviso123/AI-Video-Clipper-Studio-V3.git
-cd AI-Video-Clipper-Studio-V3
-chmod +x install.sh start.sh
-./install.sh
-./start.sh
-```
-
-**Pronto!** O instalador vai automaticamente:
-- ✅ Criar ambiente virtual Python
-- ✅ Instalar FFmpeg (Linux)
-- ✅ Instalar todas as dependências
-- ✅ Baixar modelo VOSK PT-BR (~50MB)
-- ✅ Configurar tudo automaticamente
-
----
-
-## 🚀 Como Usar
-
-1. **Acessar:** http://localhost:5000
-2. **Cole uma URL do YouTube** ou selecione arquivo local
-3. **Configure:** número de clips, duração min/max
-4. **Clique em** 🚀 GERAR CLIPS
-5. **Baixe** os clips da galeria!
-
----
-
-## 📋 Requisitos
-
-| Componente | Versão |
-|------------|--------|
-| **Python** | 3.10, 3.11, 3.12 |
-| **FFmpeg** | 4.0+ (instalado automaticamente no Linux) |
-| **RAM** | 4GB+ recomendado |
-| **Disco** | 500MB livres |
-
-### FFmpeg no Windows (se necessário)
-```powershell
-winget install ffmpeg
-```
-
----
-
-## 🗂️ Estrutura
+## 🚀 Estrutura do Projeto
 
 ```
 AI-Video-Clipper-Studio-V3/
-├── install.bat / install.sh  # 🔧 Instalador automático
-├── start_system.bat / start.sh  # 🚀 Iniciar
-├── download_models.py  # 📥 Baixar modelo VOSK
-├── requirements.txt  # 📦 Dependências
-├── app.py  # 🌐 Servidor Flask
-├── main.py  # ⚙️ Motor de processamento
-├── src/modules/  # 🧩 Módulos (transcriber, editor, etc)
-├── models/  # 🧠 Modelo VOSK (~50MB)
-└── exports/  # 📤 Clips gerados
+├── lib/                        # Código Flutter
+│   ├── main.dart               # Entry point
+│   ├── backend/                # Lógica de negócio
+│   │   ├── core/               # Configurações
+│   │   ├── models/             # Data models
+│   │   ├── services/           # Services
+│   │   └── utils/              # Helpers
+│   └── frontend/               # Interface
+│       ├── screens/            # Telas
+│       ├── widgets/            # Componentes
+│       └── theme/              # Estilos
+├── ios/                        # Config iOS nativa
+├── assets/                     # Recursos
+├── .test_output/              # 🗑️ Logs temporários
+│   ├── logs/
+│   └── reports/
+├── pubspec.yaml               # Dependências
+├── codemagic.yaml            # CI/CD
+└── .github/workflows/        # GitHub Actions
 ```
 
----
+## ⚡ Início Rápido
 
-## ⚙️ Configuração (Opcional)
+```bash
+# Instalar dependências
+flutter pub get
 
-Edite o arquivo `.env`:
+# Analisar código
+flutter analyze
 
-```env
-# Telegram Bot (opcional)
-TELEGRAM_BOT_TOKEN=seu_token
-TELEGRAM_CHAT_ID=seu_chat_id
-
-# Configurações
-MAX_CLIPS=5
-MIN_CLIP_DURATION=30
-MAX_CLIP_DURATION=120
+# Build iOS
+flutter build ios --release
 ```
 
----
+## 📖 Documentação
 
-## 🔧 Solução de Problemas
+- [INSTALL_GUIDE.md](INSTALL_GUIDE.md) - Como instalar Flutter e build
+- [SHARE_EXTENSION_GUIDE.md](SHARE_EXTENSION_GUIDE.md) - Publicação nativa iOS
 
-### Python não encontrado
-- **Windows:** Baixe de https://python.org (marque "Add to PATH")
-- **Linux:** `sudo apt install python3 python3-pip python3-venv`
+## 🏗️ Arquitetura
 
-### FFmpeg não encontrado
-- **Windows:** `winget install ffmpeg`
-- **Ubuntu:** `sudo apt install ffmpeg`
-- **Fedora/Bazzite:** `sudo dnf install ffmpeg`
+- **Backend** (`lib/backend/`): Lógica de negócio, sem UI
+- **Frontend** (`lib/frontend/`): Apenas interface
+- **Separação clara**: Backend pode ser reutilizado
 
-### Erro de modelo
-Execute novamente: `python download_models.py`
+## 📦 Build Remoto
 
----
-
-## 🎯 Funcionalidades
-
-- 🎙️ **Transcrição automática** em Português (VOSK)
-- ✂️ **Corte inteligente** por análise de conteúdo
-- 📝 **Legendas automáticas** sincronizadas
-- 🎨 **Interface moderna** dark mode
-- 📊 **Barra de progresso** em tempo real
-- 💾 **100% Offline** após instalação
-- 🔄 **Restauração de estado** ao recarregar
-
----
+**Codemagic**: Push → Build automático → Download .ipa  
+**GitHub Actions**: Push main → Build → Download artefato
 
 ## 📄 Licença
 
-MIT License - Use livremente!
-
----
-
-**Feito com ❤️ para criadores de conteúdo**
+Projeto privado

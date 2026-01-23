@@ -1,55 +1,76 @@
-# ===========================================
-# AI Video Clipper V3 - GitIgnore
-# ===========================================
-
-# === Modelos de IA (Permitir sincronização para maior rapidez no Colab) ===
-# models/
-
-# === Ambiente Python ===
-.venv/
-venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-pip-log.txt
-
-# === Arquivos Temporários ===
-temp/
-*.tmp
+# Miscellaneous
+*.class
 *.log
-*.cache
-
-# === Exports (vídeos gerados) ===
-exports/*.mp4
-exports/*.webm
-exports/*.jpg
-exports/*.png
-
-# === Logs ===
-logs/*.log
-bot_output.log
-
-# === Ambiente local ===
-.env
-
-# === IDE ===
-.vscode/
-.idea/
+*.pyc
 *.swp
-*.swo
-
-# === OS ===
 .DS_Store
-Thumbs.db
-desktop.ini
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
 
-# === Arquivos grandes de teste ===
-*.zip
-test_*.mp3
-test_*.mp4
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
 
-# === Estado do sistema (Permitir sincronização síncrona se solicitado)
-# state.json
-# token.pickle
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android related
+**/android/**/gradle-wrapper.jar
+.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+
+# iOS/XCode related
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+**/ios/**/profile
+**/ios/**/xcuserdata
+**/ios/.generated/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Exceptions to above rules.
+!**/ios/**/default.mode1v3
+!**/ios/**/default.mode2v3
+!**/ios/**/default.pbxuser
+!**/ios/**/default.perspectivev3
+
+# Test Output (temporary files)
+.test_output/

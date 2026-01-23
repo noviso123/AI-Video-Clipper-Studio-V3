@@ -1,0 +1,61 @@
+name: ai_video_clipper_ios
+description: AI Video Clipper - App iOS 100% offline para geração automática de vídeos virais
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI/Icons
+  cupertino_icons: ^1.0.6
+  
+  # State Management
+  flutter_bloc: ^8.1.0
+  equatable: ^2.0.5
+  
+  # Download de Vídeos
+  youtube_explode_dart: ^2.2.1
+  http: ^1.2.1
+  dio: ^5.4.0
+  
+  # Processamento de Vídeo/Áudio
+  ffmpeg_kit_flutter_min_gpl: ^6.0.3
+  video_player: ^2.8.2
+  video_thumbnail: ^0.5.3
+  
+  # Transcrição (iOS Speech Framework)
+  speech_to_text: ^6.6.1
+  
+  # Detecção de Rostos/IA
+  google_mlkit_face_detection: ^0.10.0
+  camera: ^0.10.5+9
+  
+  # Armazenamento/Files
+  path_provider: ^2.1.2
+  gal: ^2.3.0
+  share_plus: ^7.2.2
+  permission_handler: ^11.3.0
+  
+  # Utils
+  intl: ^0.19.0
+  url_launcher: ^6.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Adicionar fontes custom (se necessário)
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: assets/fonts/Roboto-Regular.ttf
+  #       - asset: assets/fonts/Roboto-Bold.ttf
+  #         weight: 700
