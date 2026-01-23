@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build IPA (Unsigned)
-    runs-on: macos-13
+    runs-on: macos-latest
     
     steps:
       - name: 📥 Checkout código
